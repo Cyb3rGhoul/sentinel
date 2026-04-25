@@ -1,0 +1,182 @@
+---
+# SENTINEL Incident Library
+# 10 incident templates covering easy (E), medium (M), and hard (H) difficulties
+
+incidents:
+
+  - id: "E1"
+    name: "Memory Leak in Cart Service"
+    difficulty: "easy"
+    root_cause_service: "cart-service"
+    failure_type: "memory_leak"
+    ground_truth_signals:
+      - "cart-service memory usage climbing steadily over 30 minutes"
+      - "cart-service OOM kill events in container logs"
+      - "cart-service response latency increasing proportionally with memory"
+      - "JVM heap exhaustion alerts on cart-service"
+    red_herring_signals:
+      - "redis-cache eviction rate slightly elevated"
+      - "order-service CPU spike (downstream pressure)"
+    cascade_risk: "low"
+    missing_log_ratio: 0.1
+    expected_steps_to_resolve: [5, 15]
+
+  - id: "E2"
+    name: "Failed Deployment Rollout"
+    difficulty: "easy"
+    root_cause_service: "product-catalog"
+    failure_type: "bad_deployment"
+    ground_truth_signals:
+      - "product-catalog deployment event at T-5min"
+      - "product-catalog error rate spike to 45% immediately post-deploy"
+      - "product-catalog health check failures"
+      - "new pod CrashLoopBackOff in product-catalog"
+    red_herring_signals:
+      - "search-service latency increase (dependent on product-catalog)"
+      - "cdn-edge cache miss rate elevated"
+    cascade_risk: "low"
+    missing_log_ratio: 0.05
+    expected_steps_to_resolve: [3, 10]
+
+  - id: "E3"
+    name: "CPU Spike in Pricing Engine"
+    difficulty: "easy"
+    root_cause_service: "pricing-engine"
+    failure_type: "cpu_spike"
+    ground_truth_signals:
+      - "pricing-engine CPU at 98% for 15+ minutes"
+      - "pricing-engine request queue depth growing"
+      - "pricing-engine GC pause times elevated"
+      - "pricing-engine thread pool saturation alerts"
+    red_herring_signals:
+      - "order-service timeout errors (waiting on pricing)"
+      - "load-balancer connection queue growing"
+    cascade_risk: "low"
+    missing_log_ratio: 0.08
+    expected_steps_to_resolve: [4, 12]
+
+  - id: "M1"
+    name: "DB Connection Pool Exhaustion Cascading"
+    difficulty: "medium"
+    root_cause_service: "postgres-primary"
+    failure_type: "connection_pool_exhaustion"
+    ground_truth_signals:
+      - "postgres-primary max_connections reached"
+      - "postgres-primary connection wait queue > 500"
+      - "postgres-primary slow query log showing lock contention"
+      - "postgres-primary pg_stat_activity showing idle-in-transaction sessions"
+    red_herring_signals:
+      - "cart-service error rate elevated (cannot acquire DB connection)"
+      - "order-service timeouts (secondary effect)"
+      - "redis-cache hit rate drop (apps bypassing cache on retry)"
+    cascade_risk: "high"
+    missing_log_ratio: 0.2
+    expected_steps_to_resolve: [15, 40]
+
+  - id: "M2"
+    name: "Thundering Herd on Cache Miss"
+    difficulty: "medium"
+    root_cause_service: "redis-cache"
+    failure_type: "cache_miss_storm"
+    ground_truth_signals:
+      - "redis-cache restart event in audit log"
+      - "redis-cache hit rate dropped from 95% to 2%"
+      - "redis-cache keyspace empty after restart"
+      - "redis-cache connection count spiking as clients reconnect"
+    red_herring_signals:
+      - "postgres-primary CPU spike (thundering herd hitting DB)"
+      - "product-catalog latency increase"
+      - "web-gateway 503 errors (brief)"
+    cascade_risk: "high"
+    missing_log_ratio: 0.25
+    expected_steps_to_resolve: [20, 45]
+
+  - id: "M3"
+    name: "Kafka Broker Partition Leader Election Storm"
+    difficulty: "medium"
+    root_cause_service: "kafka-broker"
+    failure_type: "bad_deployment"
+    ground_truth_signals:
+      - "kafka-broker rolling restart triggered by config change"
+      - "kafka-broker partition leader elections > 200 in 5 minutes"
+      - "kafka-broker consumer lag growing on all topics"
+      - "kafka-broker under-replicated partitions alert"
+    red_herring_signals:
+      - "notification-service message delivery delays"
+      - "analytics-db ingestion lag"
+      - "audit-log write failures"
+    cascade_risk: "medium"
+    missing_log_ratio: 0.3
+    expected_steps_to_resolve: [18, 35]
+
+  - id: "M4"
+    name: "Elasticsearch Index Saturation"
+    difficulty: "medium"
+    root_cause_service: "elasticsearch"
+    failure_type: "cpu_spike"
+    ground_truth_signals:
+      - "elasticsearch JVM heap at 95%"
+      - "elasticsearch GC overhead > 80% CPU"
+      - "elasticsearch search latency p99 > 10s"
+      - "elasticsearch circuit breaker tripped on bulk indexing"
+    red_herring_signals:
+      - "search-service timeout errors"
+      - "recommendation-engine degraded results quality"
+    cascade_risk: "medium"
+    missing_log_ratio: 0.2
+    expected_steps_to_resolve: [12, 30]
+
+  - id: "H1"
+    name: "Race Condition Heisenbug"
+    difficulty: "hard"
+    root_cause_service: "order-service"
+    failure_type: "memory_leak"
+    ground_truth_signals:
+      - "order-service intermittent duplicate order creation (< 0.1% of requests)"
+      - "order-service thread dump showing contention on shared order counter"
+      - "order-service heap dump revealing unreleased transaction objects"
+      - "postgres-primary deadlock events correlated with order-service spikes"
+    red_herring_signals:
+      - "payment-vault occasional timeout (unrelated network jitter)"
+      - "fraud-detector elevated false positive rate"
+      - "user-auth session token refresh storms"
+    cascade_risk: "medium"
+    missing_log_ratio: 0.6
+    expected_steps_to_resolve: [40, 90]
+
+  - id: "H2"
+    name: "Multi-Region Network Partition with Clock Skew"
+    difficulty: "hard"
+    root_cause_service: "service-mesh"
+    failure_type: "network_partition"
+    ground_truth_signals:
+      - "service-mesh mTLS certificate validation failures between regions"
+      - "service-mesh NTP sync failure on 3 of 12 nodes"
+      - "service-mesh distributed tracing showing split-brain request routing"
+      - "service-mesh envoy proxy log showing upstream connection resets"
+    red_herring_signals:
+      - "api-gateway elevated 504 errors (symptom not cause)"
+      - "session-manager token expiry errors (clock skew effect)"
+      - "fraud-detector anomaly score spike (unusual traffic patterns)"
+    cascade_risk: "high"
+    missing_log_ratio: 0.7
+    expected_steps_to_resolve: [60, 120]
+
+  - id: "H3"
+    name: "Secret Rotation Cascade Failure"
+    difficulty: "hard"
+    root_cause_service: "secret-manager"
+    failure_type: "bad_deployment"
+    ground_truth_signals:
+      - "secret-manager automated rotation job triggered at 03:00 UTC"
+      - "secret-manager new secret version propagation lag > 5 minutes"
+      - "secret-manager audit log showing partial rotation completion"
+      - "config-service stale secret cache not invalidated after rotation"
+    red_herring_signals:
+      - "user-auth login failures (using stale DB credentials)"
+      - "payment-vault transaction rejections (stale API keys)"
+      - "postgres-primary authentication failures from multiple services"
+      - "fraud-detector unable to reach external scoring API"
+    cascade_risk: "high"
+    missing_log_ratio: 0.65
+    expected_steps_to_resolve: [50, 100]

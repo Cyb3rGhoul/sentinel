@@ -1,0 +1,46 @@
+{
+  "baseline": {
+    "easy": {
+      "r1_mean": 0.0,
+      "r1_std": 0.0,
+      "r2_mean": 0.2,
+      "r2_std": 0.0,
+      "r3_mean": 0.7167,
+      "r3_std": 0.0176,
+      "r4_mean": 0.0,
+      "r4_std": 0.0,
+      "total_reward_mean": -0.2608,
+      "total_reward_std": 0.0044,
+      "mttr_mean": 200.0,
+      "mttr_std": 0.0
+    },
+    "medium": {
+      "r1_mean": 0.0,
+      "r1_std": 0.0,
+      "r2_mean": 0.2,
+      "r2_std": 0.0,
+      "r3_mean": 0.8,
+      "r3_std": 0.0,
+      "r4_mean": 0.0,
+      "r4_std": 0.0,
+      "total_reward_mean": -0.24,
+      "total_reward_std": 0.0,
+      "mttr_mean": 200.0,
+      "mttr_std": 0.0
+    },
+    "hard": {
+      "r1_mean": 0.0,
+      "r1_std": 0.0,
+      "r2_mean": 0.2,
+      "r2_std": 0.0,
+      "r3_mean": 0.81,
+      "r3_std": 0.0994,
+      "r4_mean": 0.0,
+      "r4_std": 0.0,
+      "total_reward_mean": -0.2375,
+      "total_reward_std": 0.0249,
+      "mttr_mean": 200.0,
+      "mttr_std": 0.0
+    }
+  }
+}
