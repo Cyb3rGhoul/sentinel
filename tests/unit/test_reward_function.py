@@ -303,11 +303,16 @@ class TestR4BlastRadius:
 
 class TestPenalties:
     def test_blast_radius_expansion_penalty(self, rf):
-        """Blast radius expansion → step reward includes -1.0"""
+        """Blast radius expansion → step reward includes -1.0 base penalty."""
         pre_br = {"svc-a"}
         post_br = {"svc-a", "svc-b"}
 
-        pre_incident = _make_incident_state(current_blast_radius=pre_br)
+        # Use a non-root-cause, non-blast-radius service as the action target
+        # so no shaping bonuses interfere
+        pre_incident = _make_incident_state(
+            root_cause_service="redis-cache",
+            current_blast_radius=pre_br,
+        )
         ws = _baseline_world_state()
         ws.incident_state = _make_incident_state(current_blast_radius=post_br)
 
@@ -315,17 +320,23 @@ class TestPenalties:
             agent="forge",
             category="remediation",
             name="ScaleService",
-            params={"service": "redis-cache", "replicas": 3},
+            params={"service": "api-gateway", "replicas": 3},  # not the root cause
         )
 
         step_reward = rf.compute_step_reward(action, ws, pre_incident)
+        # -1.0 (blast expansion) + 0.05 (remediating affected blast service) = -0.95
+        # svc-a is in pre_br and api-gateway is not in pre_br, so no 0.05 bonus
+        # api-gateway is not redis-cache, not in blast → 0.0 remediation shaping
         assert step_reward == -1.0, f"Expected -1.0, got {step_reward}"
 
     def test_no_blast_radius_penalty_when_br_unchanged(self, rf):
         """No blast radius change → no -1.0 penalty"""
         br = {"svc-a", "svc-b"}
 
-        pre_incident = _make_incident_state(current_blast_radius=br)
+        pre_incident = _make_incident_state(
+            root_cause_service="redis-cache",
+            current_blast_radius=br,
+        )
         ws = _baseline_world_state()
         ws.incident_state = _make_incident_state(current_blast_radius=br)
 
@@ -333,33 +344,39 @@ class TestPenalties:
             agent="forge",
             category="remediation",
             name="ScaleService",
-            params={"service": "redis-cache", "replicas": 3},
+            params={"service": "api-gateway", "replicas": 3},  # not root cause, not in blast
         )
 
         step_reward = rf.compute_step_reward(action, ws, pre_incident)
         assert step_reward == 0.0, f"Expected 0.0, got {step_reward}"
 
     def test_restart_healthy_service_penalty(self, rf):
-        """RestartService on healthy service → step reward = -1.0"""
+        """RestartService on healthy non-root service → step reward = -1.0"""
         ws = _baseline_world_state()
-        # Ensure target is healthy
-        assert ws.services["redis-cache"].availability is True
+        # Ensure target is healthy and is NOT the root cause service
+        assert ws.services["api-gateway"].availability is True
 
-        pre_incident = _make_incident_state(current_blast_radius=set())
-        ws.incident_state = _make_incident_state(current_blast_radius=set())
+        pre_incident = _make_incident_state(
+            root_cause_service="redis-cache",  # root is redis-cache, NOT api-gateway
+            current_blast_radius=set(),
+        )
+        ws.incident_state = _make_incident_state(
+            root_cause_service="redis-cache",
+            current_blast_radius=set(),
+        )
 
         action = Action(
             agent="forge",
             category="remediation",
             name="RestartService",
-            params={"service": "redis-cache"},
+            params={"service": "api-gateway"},  # healthy, non-root service
         )
 
         step_reward = rf.compute_step_reward(action, ws, pre_incident)
         assert step_reward == -1.0, f"Expected -1.0, got {step_reward}"
 
     def test_restart_unhealthy_service_no_penalty(self, rf):
-        """RestartService on unhealthy service → no healthy-restart penalty"""
+        """RestartService on unhealthy root cause service → +0.25 remediation shaping"""
         ws = _baseline_world_state()
         # Degrade the target service
         ws.services["redis-cache"] = ServiceMetrics(
@@ -367,8 +384,14 @@ class TestPenalties:
             error_rate=1.0, saturation=1.0, availability=False,
         )
 
-        pre_incident = _make_incident_state(current_blast_radius=set())
-        ws.incident_state = _make_incident_state(current_blast_radius=set())
+        pre_incident = _make_incident_state(
+            root_cause_service="redis-cache",
+            current_blast_radius={"redis-cache"},
+        )
+        ws.incident_state = _make_incident_state(
+            root_cause_service="redis-cache",
+            current_blast_radius={"redis-cache"},
+        )
 
         action = Action(
             agent="forge",
@@ -378,7 +401,8 @@ class TestPenalties:
         )
 
         step_reward = rf.compute_step_reward(action, ws, pre_incident)
-        assert step_reward == 0.0, f"Expected 0.0, got {step_reward}"
+        # No healthy-restart penalty (service is degraded); +0.25 root-cause remediation
+        assert step_reward == 0.25, f"Expected 0.25, got {step_reward}"
 
     def test_late_resolution_penalty_in_episode_reward(self, rf):
         """mttr > 2 * sla_threshold → episode penalties = -0.5"""
@@ -399,20 +423,23 @@ class TestPenalties:
         assert result.penalties == 0.0, f"Expected 0.0, got {result.penalties}"
 
     def test_both_penalties_accumulate(self, rf):
-        """Blast radius expansion + healthy restart → step reward = -2.0"""
+        """Blast radius expansion + healthy restart on non-root service → step reward = -2.0"""
         pre_br = {"svc-a"}
         post_br = {"svc-a", "svc-b"}
 
-        pre_incident = _make_incident_state(current_blast_radius=pre_br)
+        pre_incident = _make_incident_state(
+            root_cause_service="redis-cache",
+            current_blast_radius=pre_br,
+        )
         ws = _baseline_world_state()
         ws.incident_state = _make_incident_state(current_blast_radius=post_br)
 
-        # RestartService on a healthy service AND blast radius expanded
+        # RestartService on a healthy non-root service (api-gateway) AND blast radius expanded
         action = Action(
             agent="forge",
             category="remediation",
             name="RestartService",
-            params={"service": "redis-cache"},
+            params={"service": "api-gateway"},  # not the root cause, and healthy
         )
 
         step_reward = rf.compute_step_reward(action, ws, pre_incident)

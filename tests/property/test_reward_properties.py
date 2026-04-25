@@ -299,12 +299,17 @@ def test_blast_radius_expansion_triggers_penalty(pre_br, extra_services):
         current_blast_radius=set(post_br),
     )
 
-    # Use a non-RestartService action to isolate the blast radius penalty
+    # Pick a service NOT in any blast radius, so no +0.05 affected-service shaping applies
+    target_service = next(
+        (s for s in ALL_SERVICES if s not in pre_br and s not in post_br),
+        "audit-log",  # fallback — always last in list, rarely in small blast radii
+    )
+
     action = Action(
         agent="forge",
         category="remediation",
         name="ScaleService",
-        params={"service": "redis-cache", "replicas": 3},
+        params={"service": target_service, "replicas": 3},
     )
 
     step_reward = rf.compute_step_reward(action, ws, pre_incident_state)

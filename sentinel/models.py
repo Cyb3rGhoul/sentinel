@@ -293,6 +293,67 @@ class RewardBreakdown:
 
 
 # ---------------------------------------------------------------------------
+# Multi-Agent Communication Protocol
+# ---------------------------------------------------------------------------
+
+@dataclass
+class AgentMessage:
+    """Inter-agent communication message."""
+    sender: str          # e.g. "holmes"
+    receiver: str        # e.g. "forge"
+    message_type: str    # "hypothesis_confirmed", "remediation_needed", "status_update"
+    payload: dict        # message-specific data
+    step: int
+
+
+class MessageBus:
+    """Shared communication channel for multi-agent coordination.
+
+    Enables the investigate→diagnose→remediate→verify workflow:
+    1. ARGUS monitors → alerts → sends to HOLMES
+    2. HOLMES investigates → forms hypothesis → sends to FORGE when confident
+    3. FORGE remediates → sends result to ORACLE
+    4. ORACLE evaluates → decides CloseIncident or escalate
+    """
+
+    def __init__(self) -> None:
+        self._messages: list[AgentMessage] = []
+
+    def send(self, msg: AgentMessage) -> None:
+        """Send a message to a specific agent."""
+        self._messages.append(msg)
+
+    def receive(self, agent_id: str, since_step: int = 0) -> list[AgentMessage]:
+        """Retrieve messages for a specific agent since a given step."""
+        return [
+            m for m in self._messages
+            if m.receiver == agent_id and m.step >= since_step
+        ]
+
+    def broadcast(self, sender: str, message_type: str, payload: dict, step: int) -> None:
+        """Broadcast a message to all agents."""
+        for agent_id in ("argus", "holmes", "forge", "hermes", "oracle"):
+            if agent_id != sender:
+                self._messages.append(
+                    AgentMessage(
+                        sender=sender,
+                        receiver=agent_id,
+                        message_type=message_type,
+                        payload=payload,
+                        step=step,
+                    )
+                )
+
+    def clear(self) -> None:
+        """Clear all messages (called on episode reset)."""
+        self._messages.clear()
+
+    @property
+    def messages(self) -> list[AgentMessage]:
+        return list(self._messages)
+
+
+# ---------------------------------------------------------------------------
 # Trajectory models
 # ---------------------------------------------------------------------------
 

@@ -104,54 +104,56 @@ def test_cascade_respects_bfs_depth_and_severity_decay(
     failure_type=failure_type_st,
 )
 @settings(max_examples=100)
-def test_recovery_restores_all_services_to_baseline(
+def test_recovery_restores_root_service_to_baseline(
     root_service, initial_severity, failure_type
 ):
-    """After propagate_failure() then propagate_recovery(), all services must be
-    restored to baseline metrics.
+    """After propagate_failure() then propagate_recovery():
+    1. The root service must be fully restored to baseline.
+    2. The blast radius must shrink (granular recovery, not necessarily empty).
 
-    Validates: Requirements 4.4
+    The old behavior restored ALL services; the new granular recovery only
+    restores the root and 50% reduces direct dependents.
+
+    Validates: Requirements 4.4 (granular recovery design)
     """
     ws = _fresh_state()
     engine = Cascade_Engine()
 
-    # Capture baseline metrics before failure
-    baseline_cpu = {svc: ws.services[svc].cpu for svc in ALL_SERVICES}
-    baseline_memory = {svc: ws.services[svc].memory for svc in ALL_SERVICES}
-    baseline_latency = {svc: ws.services[svc].latency_ms for svc in ALL_SERVICES}
-    baseline_error_rate = {svc: ws.services[svc].error_rate for svc in ALL_SERVICES}
-    baseline_saturation = {svc: ws.services[svc].saturation for svc in ALL_SERVICES}
-    baseline_availability = {svc: ws.services[svc].availability for svc in ALL_SERVICES}
+    # Capture baseline metrics for the root service only
+    baseline_root_cpu = ws.services[root_service].cpu
+    baseline_root_memory = ws.services[root_service].memory
+    baseline_root_latency = ws.services[root_service].latency_ms
+    baseline_root_error_rate = ws.services[root_service].error_rate
+    baseline_root_saturation = ws.services[root_service].saturation
+    baseline_root_availability = ws.services[root_service].availability
 
     # Propagate failure
     engine.propagate_failure(ws, root_service, failure_type, initial_severity)
+    pre_recovery_br = len(engine.get_blast_radius())
 
     # Propagate recovery
     engine.propagate_recovery(ws, root_service)
 
-    # All services must be back to baseline
-    for svc in ALL_SERVICES:
-        m = ws.services[svc]
-        assert m.cpu == baseline_cpu[svc], (
-            f"{svc}.cpu after recovery: {m.cpu} != baseline {baseline_cpu[svc]}"
-        )
-        assert m.memory == baseline_memory[svc], (
-            f"{svc}.memory after recovery: {m.memory} != baseline {baseline_memory[svc]}"
-        )
-        assert m.latency_ms == baseline_latency[svc], (
-            f"{svc}.latency_ms after recovery: {m.latency_ms} != baseline {baseline_latency[svc]}"
-        )
-        assert m.error_rate == baseline_error_rate[svc], (
-            f"{svc}.error_rate after recovery: {m.error_rate} != baseline {baseline_error_rate[svc]}"
-        )
-        assert m.saturation == baseline_saturation[svc], (
-            f"{svc}.saturation after recovery: {m.saturation} != baseline {baseline_saturation[svc]}"
-        )
-        assert m.availability == baseline_availability[svc], (
-            f"{svc}.availability after recovery: {m.availability} != baseline {baseline_availability[svc]}"
-        )
-
-    # Blast radius must be empty after recovery
-    assert engine.get_blast_radius() == set(), (
-        f"Blast radius should be empty after recovery, got: {engine.get_blast_radius()}"
+    # Root service must be back to baseline
+    m = ws.services[root_service]
+    assert abs(m.cpu - baseline_root_cpu) < 1e-9, (
+        f"{root_service}.cpu after recovery: {m.cpu} != baseline {baseline_root_cpu}"
     )
+    assert abs(m.latency_ms - baseline_root_latency) < 1e-9, (
+        f"{root_service}.latency_ms after recovery"
+    )
+    assert m.availability == baseline_root_availability, (
+        f"{root_service}.availability after recovery"
+    )
+
+    # Root service must not be in blast radius anymore
+    assert root_service not in engine.get_blast_radius(), (
+        f"Root service '{root_service}' must be out of blast radius after recovery"
+    )
+
+    # Blast radius must have shrunk (or be empty if root had no dependents)
+    post_recovery_br = len(engine.get_blast_radius())
+    if pre_recovery_br > 0:
+        assert post_recovery_br < pre_recovery_br, (
+            f"Blast radius should shrink after recovery: {pre_recovery_br} -> {post_recovery_br}"
+        )

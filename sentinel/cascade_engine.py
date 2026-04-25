@@ -98,17 +98,38 @@ class Cascade_Engine:
         world_state: NexaStackWorldState,
         resolved_service: str,
     ) -> None:
-        """Restore services affected by a cascade originating from resolved_service.
+        """Granular recovery: restore the resolved service and partially heal dependents.
 
-        Restores the resolved service to baseline, then propagates recovery
-        signals through the same dependency paths used during failure propagation.
+        1. Restores the resolved service to full baseline.
+        2. Direct dependents in the CDG get 50% severity reduction.
+        3. Services below 0.1 severity after reduction are fully restored.
+        4. Tracking state is updated — only actually-affected services remain.
         """
-        # Restore the resolved root service first
-        world_state.restore_baseline()
+        from sentinel.world_state import _baseline_metrics, _BASELINE
 
-        # Clear tracking state — all services are now back to baseline
-        self._affected_services = {}
-        self._failure_paths = {}
+        # 1. Fully restore the resolved service
+        world_state.services[resolved_service] = _baseline_metrics()
+        if resolved_service in self._affected_services:
+            del self._affected_services[resolved_service]
+        if resolved_service in self._failure_paths:
+            del self._failure_paths[resolved_service]
+
+        # 2. Partially recover direct dependents (successors in CDG)
+        for neighbor in list(world_state.cdg.successors(resolved_service)):
+            if neighbor in self._affected_services:
+                old_sev = self._affected_services[neighbor]
+                new_sev = old_sev * 0.5
+                if new_sev < 0.1:
+                    # Fully restore if severity is negligible
+                    world_state.services[neighbor] = _baseline_metrics()
+                    del self._affected_services[neighbor]
+                    if neighbor in self._failure_paths:
+                        del self._failure_paths[neighbor]
+                else:
+                    # Re-apply reduced degradation from baseline
+                    world_state.services[neighbor] = _baseline_metrics()
+                    world_state.apply_degradation(neighbor, new_sev)
+                    self._affected_services[neighbor] = new_sev
 
     def get_blast_radius(self) -> set[str]:
         """Return the set of services currently affected by the active cascade."""

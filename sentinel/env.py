@@ -19,7 +19,9 @@ from sentinel.exceptions import IncidentLibraryError
 from sentinel.incident_generator import Incident_Generator
 from sentinel.models import (
     Action,
+    AgentMessage,
     IncidentState,
+    MessageBus,
     RewardWeights,
 )
 from sentinel.observability import Observability_Layer
@@ -95,6 +97,9 @@ class Sentinel_Env(gymnasium.Env):
         self._needs_reset: bool = True
         self._episode_id: str = ""
 
+        # Multi-agent communication bus
+        self.message_bus = MessageBus()
+
         # Define spaces
         self.observation_space = self._build_observation_space()
         self.action_space = self._build_action_space()
@@ -155,6 +160,7 @@ class Sentinel_Env(gymnasium.Env):
         self.world_state.restore_baseline()
         self.step_count = 0
         self._needs_reset = False
+        self.message_bus.clear()
         self._episode_id = str(uuid.uuid4())
 
         # 2. Sample a new incident template
@@ -254,6 +260,9 @@ class Sentinel_Env(gymnasium.Env):
         # 4. Apply action effects to world state
         self._apply_action(parsed_action)
 
+        # 4b. Generate inter-agent messages from action results
+        self._generate_agent_messages(parsed_action)
+
         # 5. Compute step reward
         incident_state = self._incident_state
         reward = self.reward_function.compute_step_reward(
@@ -264,6 +273,10 @@ class Sentinel_Env(gymnasium.Env):
 
         # 6. Increment step count
         self.step_count += 1
+
+        # 6b. Dynamic cascade: unresolved failures spread every 5 steps
+        if self.step_count % 5 == 0 and incident_state is not None:
+            self._propagate_secondary_failures()
 
         # 7. Check termination
         terminated = (
@@ -377,21 +390,228 @@ class Sentinel_Env(gymnasium.Env):
         params = action.params
         incident_state = self._incident_state
 
-        if name == "RestartService":
+        # ── Investigative actions ────────────────────────────────────────
+        if name == "QueryLogs":
+            service = params.get("service", "")
+            if service and incident_state is not None:
+                from sentinel.models import TimelineEntry
+                incident_state.timeline.append(
+                    TimelineEntry(
+                        step=self.step_count,
+                        event_type="query_logs",
+                        description=f"Queried logs for {service}",
+                        agent=action.agent,
+                    )
+                )
+
+        elif name == "QueryMetrics":
+            service = params.get("service", "")
+            if service and incident_state is not None:
+                from sentinel.models import TimelineEntry
+                incident_state.timeline.append(
+                    TimelineEntry(
+                        step=self.step_count,
+                        event_type="query_metrics",
+                        description=f"Queried metrics for {service}: {params.get('metric_name', 'all')}",
+                        agent=action.agent,
+                    )
+                )
+
+        elif name == "QueryTrace":
+            if incident_state is not None:
+                from sentinel.models import TimelineEntry
+                incident_state.timeline.append(
+                    TimelineEntry(
+                        step=self.step_count,
+                        event_type="query_trace",
+                        description=f"Queried trace {params.get('trace_id', 'unknown')}",
+                        agent=action.agent,
+                    )
+                )
+
+        elif name == "FormHypothesis":
+            service = params.get("service", "")
+            failure_type = params.get("failure_type", "")
+            confidence = params.get("confidence", 0.5)
+            if service and incident_state is not None:
+                from sentinel.models import HypothesisNode, FailureType, TimelineEntry
+                try:
+                    ft = FailureType(failure_type)
+                except ValueError:
+                    ft = FailureType.cpu_spike
+                node = HypothesisNode(
+                    service=service, failure_type=ft, confidence=float(confidence)
+                )
+                # Replace existing hypothesis for same service or add new
+                incident_state.active_hypotheses = [
+                    h for h in incident_state.active_hypotheses if h.service != service
+                ]
+                incident_state.active_hypotheses.append(node)
+                incident_state.timeline.append(
+                    TimelineEntry(
+                        step=self.step_count,
+                        event_type="form_hypothesis",
+                        description=f"Hypothesis: {service} ({failure_type}) conf={confidence:.2f}",
+                        agent=action.agent,
+                    )
+                )
+
+        # ── Remediation actions ──────────────────────────────────────────
+        elif name == "RestartService":
             service = params.get("service", "")
             if service and service in self.world_state.services:
-                # Propagate recovery for the restarted service
                 self._cascade_engine.propagate_recovery(
                     world_state=self.world_state,
                     resolved_service=service,
                 )
-                # Update blast radius
                 if incident_state is not None:
                     new_br = self._cascade_engine.get_blast_radius()
                     incident_state.current_blast_radius = new_br
 
+        elif name == "ScaleService":
+            service = params.get("service", "")
+            replicas = params.get("replicas", 2)
+            if service and service in self.world_state.services:
+                m = self.world_state.services[service]
+                # Scaling reduces saturation and CPU proportionally
+                scale_factor = max(0.3, 1.0 / max(replicas, 1))
+                from sentinel.models import ServiceMetrics
+                self.world_state.services[service] = ServiceMetrics(
+                    cpu=max(0.1, m.cpu * scale_factor),
+                    memory=m.memory,  # memory stays (per-instance)
+                    latency_ms=max(10.0, m.latency_ms * scale_factor),
+                    error_rate=max(0.0, m.error_rate * scale_factor),
+                    saturation=max(0.05, m.saturation * scale_factor),
+                    availability=True if m.saturation * scale_factor < 0.9 else m.availability,
+                )
+                if incident_state is not None:
+                    # May reduce blast radius if service is now healthy
+                    if self.world_state.services[service].availability:
+                        incident_state.current_blast_radius.discard(service)
+
+        elif name == "RollbackDeployment":
+            service = params.get("service", "")
+            if service and service in self.world_state.services:
+                # Rollback is highly effective if failure is bad_deployment
+                if incident_state is not None and incident_state.failure_type.value == "bad_deployment":
+                    if service == incident_state.root_cause_service:
+                        self._cascade_engine.propagate_recovery(
+                            world_state=self.world_state,
+                            resolved_service=service,
+                        )
+                        incident_state.current_blast_radius = self._cascade_engine.get_blast_radius()
+                    else:
+                        # Partial effect on non-root service
+                        from sentinel.world_state import _baseline_metrics
+                        self.world_state.services[service] = _baseline_metrics()
+                        incident_state.current_blast_radius.discard(service)
+
+        elif name == "DrainTraffic":
+            service = params.get("service", "")
+            if service and service in self.world_state.services:
+                m = self.world_state.services[service]
+                from sentinel.models import ServiceMetrics
+                # Draining traffic reduces error rate and latency but doesn't fix root cause
+                self.world_state.services[service] = ServiceMetrics(
+                    cpu=m.cpu,
+                    memory=m.memory,
+                    latency_ms=max(10.0, m.latency_ms * 0.3),
+                    error_rate=max(0.0, m.error_rate * 0.2),
+                    saturation=max(0.05, m.saturation * 0.3),
+                    availability=True,
+                )
+                if incident_state is not None:
+                    incident_state.current_blast_radius.discard(service)
+
+        elif name == "ModifyRateLimit":
+            service = params.get("service", "")
+            limit_rps = params.get("limit_rps", 100)
+            if service and service in self.world_state.services:
+                m = self.world_state.services[service]
+                # Rate limiting caps saturation
+                cap = min(1.0, limit_rps / 200.0)
+                from sentinel.models import ServiceMetrics
+                self.world_state.services[service] = ServiceMetrics(
+                    cpu=m.cpu,
+                    memory=m.memory,
+                    latency_ms=m.latency_ms,
+                    error_rate=max(0.0, m.error_rate * 0.5),
+                    saturation=min(m.saturation, cap),
+                    availability=m.availability,
+                )
+
+        elif name == "ModifyConfig":
+            service = params.get("service", "")
+            if service and service in self.world_state.services:
+                m = self.world_state.services[service]
+                # Config change has minor positive effect
+                from sentinel.models import ServiceMetrics
+                self.world_state.services[service] = ServiceMetrics(
+                    cpu=m.cpu,
+                    memory=m.memory,
+                    latency_ms=m.latency_ms,
+                    error_rate=max(0.0, m.error_rate * 0.8),
+                    saturation=max(0.05, m.saturation * 0.9),
+                    availability=m.availability,
+                )
+
+        # ── Deployment actions ───────────────────────────────────────────
+        elif name == "CanaryDeploy":
+            service = params.get("service", "")
+            traffic_percent = params.get("traffic_percent", 0.1)
+            if service and service in self.world_state.services and incident_state is not None:
+                from sentinel.models import TimelineEntry
+                incident_state.timeline.append(
+                    TimelineEntry(
+                        step=self.step_count,
+                        event_type="canary_deploy",
+                        description=f"Canary deploy on {service} at {traffic_percent*100:.0f}% traffic",
+                        agent=action.agent,
+                    )
+                )
+                # Safe: canary has minimal impact, slight improvement
+                m = self.world_state.services[service]
+                from sentinel.models import ServiceMetrics
+                improvement = traffic_percent * 0.3
+                self.world_state.services[service] = ServiceMetrics(
+                    cpu=m.cpu,
+                    memory=m.memory,
+                    latency_ms=max(10.0, m.latency_ms * (1.0 - improvement)),
+                    error_rate=max(0.0, m.error_rate * (1.0 - improvement)),
+                    saturation=m.saturation,
+                    availability=m.availability,
+                )
+
+        elif name == "FullDeploy":
+            service = params.get("service", "")
+            if service and service in self.world_state.services and incident_state is not None:
+                from sentinel.models import TimelineEntry
+                incident_state.timeline.append(
+                    TimelineEntry(
+                        step=self.step_count,
+                        event_type="full_deploy",
+                        description=f"Full deploy on {service}",
+                        agent=action.agent,
+                    )
+                )
+                # Full deploy: if root cause is bad_deployment, fixes it
+                if incident_state.failure_type.value == "bad_deployment" and service == incident_state.root_cause_service:
+                    self._cascade_engine.propagate_recovery(
+                        world_state=self.world_state,
+                        resolved_service=service,
+                    )
+                    incident_state.current_blast_radius = self._cascade_engine.get_blast_radius()
+
+        elif name == "Rollback":
+            service = params.get("service", "")
+            if service and service in self.world_state.services:
+                from sentinel.world_state import _baseline_metrics
+                self.world_state.services[service] = _baseline_metrics()
+                if incident_state is not None:
+                    incident_state.current_blast_radius.discard(service)
+
+        # ── Meta actions ─────────────────────────────────────────────────
         elif name == "CloseIncident":
-            # Record the close action in the timeline
             if incident_state is not None:
                 from sentinel.models import TimelineEntry
                 incident_state.timeline.append(
@@ -403,6 +623,126 @@ class Sentinel_Env(gymnasium.Env):
                     )
                 )
 
+        elif name == "EscalateToHuman":
+            if incident_state is not None:
+                from sentinel.models import TimelineEntry
+                incident_state.timeline.append(
+                    TimelineEntry(
+                        step=self.step_count,
+                        event_type="escalate",
+                        description=f"Escalated: {params.get('reason', 'unknown')}",
+                        agent=action.agent,
+                    )
+                )
+
+        elif name == "GenerateNewScenario":
+            if incident_state is not None:
+                from sentinel.models import TimelineEntry
+                incident_state.timeline.append(
+                    TimelineEntry(
+                        step=self.step_count,
+                        event_type="generate_scenario",
+                        description=f"Oracle generating scenario: {params.get('difficulty', 'medium')}",
+                        agent=action.agent,
+                    )
+                )
+
         # Record attempted remediations
         if incident_state is not None and action.category == "remediation":
             incident_state.attempted_remediations.append(action)
+
+    def _generate_agent_messages(self, action: Action) -> None:
+        """Generate inter-agent messages based on the action taken.
+
+        This implements the multi-agent coordination protocol:
+        - HOLMES FormHypothesis → sends hypothesis to FORGE
+        - FORGE remediation → sends result to ORACLE
+        - ARGUS investigative → sends findings to HOLMES
+        - ORACLE meta → broadcasts status to all
+        """
+        incident_state = self._incident_state
+        if incident_state is None:
+            return
+
+        step = self.step_count
+
+        if action.name == "FormHypothesis":
+            # HOLMES → FORGE: ready for remediation
+            self.message_bus.send(AgentMessage(
+                sender="holmes",
+                receiver="forge",
+                message_type="hypothesis_confirmed",
+                payload={
+                    "service": action.params.get("service", ""),
+                    "failure_type": action.params.get("failure_type", ""),
+                    "confidence": action.params.get("confidence", 0.5),
+                },
+                step=step,
+            ))
+
+        elif action.category == "remediation":
+            # FORGE → ORACLE: remediation result
+            br_size = len(incident_state.current_blast_radius)
+            self.message_bus.send(AgentMessage(
+                sender="forge",
+                receiver="oracle",
+                message_type="remediation_result",
+                payload={
+                    "action": action.name,
+                    "service": action.params.get("service", ""),
+                    "blast_radius": br_size,
+                },
+                step=step,
+            ))
+
+        elif action.agent == "argus" and action.category == "investigative":
+            # ARGUS → HOLMES: monitoring findings
+            self.message_bus.send(AgentMessage(
+                sender="argus",
+                receiver="holmes",
+                message_type="monitoring_update",
+                payload={
+                    "service": action.params.get("service", ""),
+                    "action": action.name,
+                },
+                step=step,
+            ))
+
+        elif action.agent == "oracle":
+            # ORACLE → broadcast
+            self.message_bus.broadcast(
+                sender="oracle",
+                message_type="oracle_decision",
+                payload={"action": action.name, "params": action.params},
+                step=step,
+            )
+
+    def _propagate_secondary_failures(self) -> None:
+        """Time-evolving cascade: unresolved failures spread to adjacent services.
+
+        Called every 5 steps. For each currently-affected service, there's a
+        20% chance each of its CDG neighbors gets mildly degraded (severity 0.3).
+        This creates urgency — the agent can't investigate forever.
+        """
+        import random
+
+        incident_state = self._incident_state
+        if incident_state is None:
+            return
+
+        current_br = set(incident_state.current_blast_radius)
+        if not current_br:
+            return
+
+        new_affected: dict[str, float] = {}
+        for service in current_br:
+            for neighbor in self.world_state.cdg.successors(service):
+                if neighbor not in current_br and neighbor not in new_affected:
+                    if random.random() < 0.2:  # 20% chance per neighbor
+                        new_affected[neighbor] = 0.3
+
+        # Apply secondary degradation
+        for service, severity in new_affected.items():
+            self.world_state.apply_degradation(service, severity)
+            self._cascade_engine._affected_services[service] = severity
+            incident_state.current_blast_radius.add(service)

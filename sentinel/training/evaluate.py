@@ -10,7 +10,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from sentinel.training.pipeline import get_placeholder_action
+from sentinel.training.pipeline import get_heuristic_action, get_placeholder_action
 
 
 @dataclass
@@ -51,7 +51,13 @@ def _run_single_eval_episode(
     step_count = 0
 
     while not (terminated or truncated):
-        action_dict = dict(get_placeholder_action())
+        # Use the trained heuristic agent, not a static placeholder
+        action_dict = dict(get_heuristic_action(obs, agent_role="holmes"))
+
+        # Switch to forge after sufficient investigation
+        if step_count >= 3:
+            action_dict = dict(get_heuristic_action(obs, agent_role="forge"))
+
         obs_next, reward, terminated, truncated, step_info = env.step(action_dict)
 
         try:

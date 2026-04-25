@@ -9,10 +9,20 @@ Provides:
 - run_training_loop(): full training loop with OOM handling and checkpointing
 
 Action selection priority (highest to lowest):
-  1. GRPOTrainer.generate()       — full fine-tuned model (GPU required)
-  2. UCB1 + Bayesian RCA          — observation-driven math (no GPU, no API)
+  1. LLMAgent.act()               — fine-tuned Llama/Qwen model via prompt_builder +
+                                    action_parser (GPU required, unsloth/trl installed)
+  2. UCB1 + Bayesian RCA          — observation-driven math (no GPU, no API needed)
      UCB1: Auer, Cesa-Bianchi & Fischer (2002). Machine Learning, 47, 235-256.
      Bayes: Noisy-OR belief propagation (Pearl 1988 / MicroRank WWW 2021).
+
+LLM integration flow:
+  obs (dict)
+    → prompt_builder.build_messages()    # obs → chat messages
+    → tokenizer.apply_chat_template()    # messages → input_ids
+    → model.generate()                   # input_ids → raw text
+    → action_parser.parse_llm_action()   # raw text → Action dict
+    → env.step(action)                   # action → (obs, reward, ...)
+    → make_grpo_reward_fn()              # reward signal → GRPOTrainer
 """
 from __future__ import annotations
 
@@ -36,14 +46,22 @@ logger = logging.getLogger(__name__)
 try:
     from unsloth import FastLanguageModel  # type: ignore
     _UNSLOTH_AVAILABLE = True
-except ImportError:
+except Exception as _unsloth_err:  # NotImplementedError when no GPU, ImportError when not installed
     FastLanguageModel = None  # type: ignore
     _UNSLOTH_AVAILABLE = False
+    # Warn only once at import time so the caller knows why LLM mode is disabled
+    import warnings as _w
+    _w.warn(
+        f"unsloth unavailable ({type(_unsloth_err).__name__}: {_unsloth_err}). "
+        "Training will run in UCB1+Bayesian simulation mode.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
 
 try:
     from trl import GRPOTrainer, GRPOConfig  # type: ignore
     _TRL_AVAILABLE = True
-except ImportError:
+except Exception as _trl_err:  # ImportError when not installed
     GRPOTrainer = None  # type: ignore
     GRPOConfig = None  # type: ignore
     _TRL_AVAILABLE = False
@@ -92,62 +110,109 @@ def build_grpo_trainer(
     agent: Literal["holmes", "forge"],
     env: Any,
     config: TrainingConfig,
-) -> Any:
-    """Build and return a GRPOTrainer for the given agent.
+) -> tuple[Any, Any]:
+    """Build a GRPOTrainer + LLMAgent for the given SENTINEL agent role.
 
-    Loads ``unsloth/Meta-Llama-3-8B-Instruct`` in 4-bit, applies LoRA
-    (r=16, alpha=32), and wraps it in a GRPOTrainer that uses
-    ``Reward_Function.compute_episode_reward`` as its sole reward signal.
+    Full LLM integration flow:
+      1. Load ``unsloth/Meta-Llama-3-8B-Instruct`` (or config.model_name) in 4-bit
+      2. Apply LoRA adapters (r=16, alpha=32) via Unsloth
+      3. Wrap SENTINEL's Reward_Function as a GRPO reward signal
+      4. Construct LLMAgent (obs→prompt→model→parse→action)
+      5. Return (GRPOTrainer, LLMAgent)
 
-    Returns ``None`` when unsloth or trl are unavailable (graceful degradation).
+    Returns:
+      (trainer, llm_agent) — both None when unsloth/trl are unavailable,
+      in which case training falls back to UCB1+Bayesian math agent.
     """
+    from sentinel.training.llm_agent import LLMAgent, make_grpo_reward_fn
+    from sentinel.training.prompt_builder import build_messages
+
     if not _UNSLOTH_AVAILABLE or not _TRL_AVAILABLE:
         warnings.warn(
-            "unsloth and/or trl are not installed — build_grpo_trainer() returning None. "
-            "Training will run in simulation mode.",
+            "unsloth and/or trl are not installed — build_grpo_trainer() returning (None, None). "
+            "Training will run in UCB1+Bayesian simulation mode (no GPU required).",
             RuntimeWarning,
             stacklevel=2,
         )
-        return None
+        return None, None
 
-    # Load base model in 4-bit
+    # ── 1. Load base model in 4-bit quantization ──────────────────────────
+    logger.info("Loading %s in 4-bit ...", config.model_name)
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=config.model_name,
         max_seq_length=config.max_seq_length,
         load_in_4bit=config.load_in_4bit,
+        dtype=None,           # auto-detect bf16/fp16
     )
 
-    # Apply LoRA adapters
+    # ── 2. Apply LoRA adapters ─────────────────────────────────────────────
+    logger.info("Applying LoRA (r=%d, alpha=%d) ...", config.lora_r, config.lora_alpha)
     model = FastLanguageModel.get_peft_model(
         model,
         r=config.lora_r,
         lora_alpha=config.lora_alpha,
         target_modules=config.lora_target_modules,
         bias="none",
-        use_gradient_checkpointing=True,
+        use_gradient_checkpointing="unsloth",  # unsloth's memory-efficient variant
+        random_state=42,
     )
 
-    # Reward wrapper: delegate to env.reward_function.compute_episode_reward
-    def _reward_fn(trajectory, world_state=None, incident_state=None):
-        rf = env.reward_function
-        ws = world_state or env.world_state
-        inc = incident_state or env._incident_state
-        breakdown = rf.compute_episode_reward(trajectory, ws, inc)
-        return breakdown.total
+    # ── 3. GRPO reward function ────────────────────────────────────────────
+    # GRPOTrainer expects: reward_fn(prompts, completions, **kwargs) -> list[float]
+    grpo_reward_fn = make_grpo_reward_fn(env)
 
+    # ── 4. Build a minimal prompt dataset for GRPOTrainer ─────────────────
+    # TRL's GRPOTrainer needs a dataset of prompts to sample from.
+    # We generate synthetic prompts from a fresh env reset.
+    try:
+        from datasets import Dataset  # type: ignore
+        env_obs, _ = env.reset()
+        sample_messages = build_messages(env_obs, agent_role=agent, step_number=0)
+        sample_prompt = tokenizer.apply_chat_template(
+            sample_messages, tokenize=False, add_generation_prompt=True
+        )
+        # Create a small dataset; the real training data comes from env rollouts
+        prompt_dataset = Dataset.from_dict({"prompt": [sample_prompt] * 8})
+    except Exception as exc:
+        logger.warning("Could not build prompt dataset: %s", exc)
+        prompt_dataset = None
+
+    # ── 5. GRPOTrainer config ─────────────────────────────────────────────
     grpo_cfg = GRPOConfig(
+        output_dir=config.checkpoint_dir,
         per_device_train_batch_size=config.batch_size,
         max_steps=config.max_steps,
-        output_dir=config.checkpoint_dir,
+        max_new_tokens=512,
+        temperature=0.7,
+        learning_rate=5e-6,
+        lr_scheduler_type="cosine",
+        warmup_steps=10,
+        logging_steps=5,
+        save_steps=50,
+        bf16=True,
+        remove_unused_columns=False,
     )
 
     trainer = GRPOTrainer(
         model=model,
         tokenizer=tokenizer,
-        reward_funcs=[_reward_fn],
+        reward_funcs=[grpo_reward_fn],
         args=grpo_cfg,
+        train_dataset=prompt_dataset,
     )
-    return trainer
+
+    # ── 6. LLMAgent for action generation during rollouts ─────────────────
+    import torch
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    llm_agent = LLMAgent(
+        model=model,
+        tokenizer=tokenizer,
+        agent_role=agent,
+        device=device,
+    )
+    logger.info("build_grpo_trainer: ready (model=%s, device=%s)", config.model_name, device)
+
+    return trainer, llm_agent
 
 
 # ---------------------------------------------------------------------------
@@ -222,11 +287,14 @@ def load_latest_checkpoint(checkpoint_dir: str) -> dict | None:
 # Training loop
 # ---------------------------------------------------------------------------
 
+
 def get_heuristic_action(obs: dict, agent_role: str = "holmes") -> dict:
     """Return an observation-driven action using the HOLMES or FORGE heuristic agent.
 
-    This replaces the old static placeholder — actions are now derived from
-    what the observation actually shows (blast radius, alerts, hypotheses).
+    Implements the proper multi-agent workflow:
+    1. HOLMES: QueryLogs/QueryMetrics/CheckDependencies → FormHypothesis (when confident)
+    2. FORGE: ScaleService/DrainTraffic/ModifyRateLimit on degraded blast-radius services
+    3. ORACLE/HERMES: CloseIncident when blast radius shrinks significantly
     """
     import json as _json
 
@@ -242,6 +310,17 @@ def get_heuristic_action(obs: dict, agent_role: str = "holmes") -> dict:
 
     blast_radius: list[str] = incident_ctx.get("current_blast_radius", [])
     hypotheses: list[dict] = incident_ctx.get("active_hypotheses", [])
+    step_num: int = incident_ctx.get("step", 0)
+
+    # Parse service metrics from observation to find degraded services
+    metrics_raw = obs.get("service_metrics", "{}")
+    if isinstance(metrics_raw, str):
+        try:
+            metrics = _json.loads(metrics_raw)
+        except _json.JSONDecodeError:
+            metrics = {}
+    else:
+        metrics = metrics_raw
 
     # Parse active alerts
     alerts_raw = obs.get("active_alerts", "[]")
@@ -259,16 +338,35 @@ def get_heuristic_action(obs: dict, agent_role: str = "holmes") -> dict:
         if svc:
             alert_service_counts[svc] = alert_service_counts.get(svc, 0) + 1
 
-    # Pick most-alerted service or first blast-radius service
-    if alert_service_counts:
+    # Find most impacted service: prefer blast_radius services with high error rates
+    degraded_services = []
+    for svc in blast_radius:
+        m = metrics.get(svc, {}) if isinstance(metrics, dict) else {}
+        err = m.get("error_rate", 0.0) if isinstance(m, dict) else 0.0
+        degraded_services.append((svc, err))
+    degraded_services.sort(key=lambda x: -x[1])  # highest error rate first
+
+    # Pick primary target
+    if degraded_services:
+        top_service = degraded_services[0][0]
+    elif alert_service_counts:
         top_service = max(alert_service_counts, key=alert_service_counts.__getitem__)
     elif blast_radius:
         top_service = blast_radius[0]
     else:
-        top_service = "api-gateway"  # safe default that always exists in NexaStack
+        top_service = "api-gateway"
 
     if agent_role == "forge":
-        # FORGE: remediate the highest-confidence hypothesis or most-alerted service
+        # FORGE: use non-destructive remediation actions on degraded services
+        if not blast_radius:
+            # Incident resolved — close it
+            return {
+                "agent": "oracle",
+                "category": "meta",
+                "name": "CloseIncident",
+                "params": {"resolution_summary": "Blast radius cleared, closing incident."},
+            }
+
         if hypotheses:
             best = max(
                 hypotheses,
@@ -278,19 +376,51 @@ def get_heuristic_action(obs: dict, agent_role: str = "holmes") -> dict:
             target = best.get("service", top_service) if isinstance(best, dict) else getattr(best, "service", top_service)
         else:
             target = top_service
+
+        # Cycle through safe remediation actions (not RestartService which penalizes healthy svcs)
+        remediation_cycle = ["ScaleService", "ModifyRateLimit", "DrainTraffic", "RollbackDeployment"]
+        action_name = remediation_cycle[step_num % len(remediation_cycle)]
+        params: dict = {"service": target}
+        if action_name == "ScaleService":
+            params["replicas"] = 3
+        elif action_name == "ModifyRateLimit":
+            params["limit"] = 500
+        elif action_name == "DrainTraffic":
+            params["target_node"] = target
+
         return {
             "agent": "forge",
             "category": "remediation",
-            "name": "RestartService",
-            "params": {"service": target},
+            "name": action_name,
+            "params": params,
         }
 
-    # Default: HOLMES investigates the most-alerted service
+    # HOLMES: investigate → form hypothesis when enough data gathered
+    if step_num == 3 and blast_radius:
+        # After 3 investigative steps, form a hypothesis
+        return {
+            "agent": "holmes",
+            "category": "investigative",
+            "name": "FormHypothesis",
+            "params": {
+                "service": top_service,
+                "failure_type": "connection_pool_exhaustion",
+                "confidence": 0.8,
+            },
+        }
+
+    # Rotate through investigative actions for diverse signal collection
+    investigative_cycle = ["QueryLogs", "QueryMetrics", "CheckDependencies", "QueryTraces"]
+    inv_action = investigative_cycle[step_num % len(investigative_cycle)]
+    params = {"service": top_service, "time_range": [0, 300]}
+    if inv_action == "QueryMetrics":
+        params["metric_name"] = "error_rate"
+
     return {
         "agent": "holmes",
         "category": "investigative",
-        "name": "QueryLogs",
-        "params": {"service": top_service, "time_range": [0, 300]},
+        "name": inv_action,
+        "params": params,
     }
 
 
@@ -315,21 +445,31 @@ def run_training_loop(
     config: TrainingConfig,
     reward_fn: Any,
     start_episode: int = 0,
+    llm_agent: Any = None,
 ) -> list[EpisodeMetrics]:
     """Run the GRPO training loop from *start_episode* to *config.max_steps*.
 
     For each episode:
-    1. Reset the environment.
-    2. Step until terminated or truncated, collecting a Trajectory.
-    3. Compute episode reward via ``reward_fn.compute_episode_reward``.
-    4. Log metrics and save checkpoint every 10 episodes.
+    1. Reset env (ALP curriculum selects difficulty/failure_type).
+    2. Act with LLMAgent (if available) or UCB1+Bayesian math.
+    3. After each episode, run a GRPOTrainer gradient step.
+    4. Record in ALP curriculum for next task selection.
+    5. Log metrics and checkpoint every 10 episodes.
 
     CUDA OOM is handled by halving ``config.batch_size`` and retrying.
-    Works even when *trainer* is ``None`` (no GPU / unsloth).
+    Works even when *trainer* and *llm_agent* are both None (no GPU).
     """
-    from sentinel.models import Action, RewardBreakdown, Trajectory, TrajectoryStep
+    from sentinel.math_engine import get_alp_curriculum, get_ucb1_bandit
 
     all_metrics: list[EpisodeMetrics] = []
+    curriculum = get_alp_curriculum()
+    bandit = get_ucb1_bandit()  # noqa: F841  (used inside _ucb1_math_action)
+
+    mode = "LLM" if llm_agent is not None else "UCB1+Bayesian"
+    logger.info(
+        "Starting training loop: episodes=%d, mode=%s, start=%d",
+        config.max_steps, mode, start_episode,
+    )
 
     for episode in range(start_episode, config.max_steps):
         metrics = _run_single_episode(
@@ -338,14 +478,34 @@ def run_training_loop(
             env=env,
             config=config,
             reward_fn=reward_fn,
+            llm_agent=llm_agent,
         )
         all_metrics.append(metrics)
         log_episode_metrics(metrics, config.log_file)
+
+        logger.info(
+            "Episode %4d | R1=%.2f R2=%.2f R3=%.2f R4=%.2f | Total=%.3f | MTTR=%d | loss=%s",
+            episode, metrics.r1, metrics.r2, metrics.r3, metrics.r4,
+            metrics.total_reward, metrics.mttr,
+            f"{metrics.loss:.4f}" if metrics.loss is not None else "n/a",
+        )
+
+        # Record in ALP curriculum for next task selection
+        inc = env._incident_state
+        if inc is not None:
+            difficulty = "easy"
+            for template in env.incident_generator._templates:
+                if template.id == inc.template_id:
+                    difficulty = template.difficulty
+                    break
+            curriculum.record(difficulty, inc.failure_type.value, metrics.total_reward)
 
         if episode % 10 == 0:
             state = {
                 "episode": episode,
                 "batch_size": config.batch_size,
+                "alp_summary": curriculum.summary(),
+                "mode": mode,
             }
             save_checkpoint(state, config.checkpoint_dir, episode)
 
@@ -358,22 +518,22 @@ def _run_single_episode(
     env: Any,
     config: TrainingConfig,
     reward_fn: Any,
+    llm_agent: Any = None,
 ) -> EpisodeMetrics:
     """Run one episode, retrying on CUDA OOM by halving batch size."""
     while True:
         try:
-            return _execute_episode(episode, trainer, env, config, reward_fn)
+            return _execute_episode(
+                episode, trainer, env, config, reward_fn, llm_agent=llm_agent
+            )
         except RuntimeError as exc:
             if "CUDA out of memory" in str(exc):
                 new_bs = max(1, config.batch_size // 2)
                 logger.warning(
-                    "CUDA OOM at episode %d — halving batch_size from %d to %d and retrying.",
-                    episode,
-                    config.batch_size,
-                    new_bs,
+                    "CUDA OOM at episode %d \u2014 halving batch_size %d\u2192%d and retrying.",
+                    episode, config.batch_size, new_bs,
                 )
                 config.batch_size = new_bs
-                # Update trainer batch size if possible
                 if trainer is not None and hasattr(trainer, "args"):
                     trainer.args.per_device_train_batch_size = new_bs
             else:
@@ -386,8 +546,16 @@ def _execute_episode(
     env: Any,
     config: TrainingConfig,
     reward_fn: Any,
+    llm_agent: Any = None,
 ) -> EpisodeMetrics:
-    """Execute a single episode and return its metrics."""
+    """Execute a single episode and return its metrics.
+
+    When llm_agent is provided, generates actions via LLM inference
+    (obs → prompt → model.generate → parse → action).
+    When trainer is provided, runs a GRPOTrainer gradient step using the
+    collected (prompt, completion, reward) triples.
+    """
+    from sentinel.training.prompt_builder import build_prompt
     from sentinel.models import Action, RewardBreakdown, Trajectory, TrajectoryStep
 
     obs, info = env.reset()
@@ -396,13 +564,41 @@ def _execute_episode(
     truncated = False
     step_count = 0
 
+    # Collect (prompt, completion, step_reward) for GRPO update
+    grpo_samples: list[dict] = []
+
+    # Reset LLM agent state for new episode
+    if llm_agent is not None:
+        llm_agent.reset()
+
     while not (terminated or truncated):
-        # Use trainer to get action when available; otherwise use placeholder
-        action_dict = _get_action(trainer, obs, config)
+        # ─ Build text prompt for this observation ────────────────────────────
+        text_prompt = build_prompt(
+            obs,
+            agent_role=getattr(llm_agent, "agent_role", config.agent),
+            step_number=step_count,
+        ) if llm_agent is not None or trainer is not None else None
+
+        # ─ Select action ──────────────────────────────────────────────────────
+        action_dict = _get_action(
+            trainer=trainer,
+            obs=obs,
+            config=config,
+            llm_agent=llm_agent,
+            step=step_count,
+        )
+        llm_completion = action_dict.pop("_llm_completion", None)
 
         pre_incident_state = env._incident_state
-
         obs_next, reward, terminated, truncated, step_info = env.step(action_dict)
+
+        # ─ Record GRPO sample ─────────────────────────────────────────────
+        if text_prompt is not None and llm_completion is not None:
+            grpo_samples.append({
+                "prompt":     text_prompt,
+                "completion": llm_completion,
+                "reward":     float(reward),
+            })
 
         try:
             parsed_action = Action(
@@ -432,16 +628,14 @@ def _execute_episode(
         obs = obs_next
         step_count += 1
 
-    # Build trajectory
+    # ─ Build trajectory ─────────────────────────────────────────────────
     episode_id = info.get("incident_id", str(uuid.uuid4()))
     incident_template_id = info.get("incident_id", "unknown")
     mttr = step_count
 
-    # Compute episode reward
     incident_state = env._incident_state
     world_state = env.world_state
 
-    # Ensure steps is non-empty for reward computation
     if not steps:
         breakdown = RewardBreakdown(r1=0.0, r2=0.0, r3=0.0, r4=0.0, penalties=0.0, total=0.0)
     else:
@@ -457,15 +651,21 @@ def _execute_episode(
         else:
             breakdown = RewardBreakdown(r1=0.0, r2=0.0, r3=0.0, r4=0.0, penalties=0.0, total=0.0)
 
-    # Optionally run a trainer step
+    # ─ GRPO gradient step (if trainer + samples available) ────────────────
     loss: float | None = None
-    if trainer is not None and hasattr(trainer, "train"):
+    if trainer is not None and grpo_samples:
         try:
+            from datasets import Dataset  # type: ignore
+            grpo_ds = Dataset.from_list([{
+                "prompt":     s["prompt"],
+                "completion": s["completion"],
+            } for s in grpo_samples])
+            trainer.train_dataset = grpo_ds
             result = trainer.train()
             if hasattr(result, "training_loss"):
                 loss = float(result.training_loss)
         except Exception as exc:
-            logger.warning("Trainer step failed at episode %d: %s", episode, exc)
+            logger.warning("GRPO trainer step failed at episode %d: %s", episode, exc)
 
     return EpisodeMetrics(
         episode=episode,
@@ -479,19 +679,26 @@ def _execute_episode(
     )
 
 
-def _get_action(trainer: Any, obs: dict, config: TrainingConfig) -> dict:
+
+def _get_action(
+    trainer: Any,
+    obs: dict,
+    config: TrainingConfig,
+    llm_agent: Any = None,
+    step: int = 0,
+) -> dict:
     """Return an action dict using the best available method.
 
     Priority:
-      1. GRPOTrainer.generate()  — full fine-tuned model
-      2. UCB1 bandit + Bayesian RCA (math-only, no API needed)
+      1. LLMAgent.act()  — fine-tuned model via prompt_builder + action_parser
+      2. UCB1 bandit + Bayesian RCA (math-only, no GPU needed)
     """
-    # 1. Fine-tuned GRPO model
-    if trainer is not None and hasattr(trainer, "generate"):
+    # 1. Fine-tuned LLM agent (unsloth + trl available)
+    if llm_agent is not None:
         try:
-            return trainer.generate(obs)
+            return llm_agent.act(obs, step=step)
         except Exception as exc:
-            logger.debug("trainer.generate failed: %s", exc)
+            logger.debug("LLMAgent.act failed at step %d: %s", step, exc)
 
     # 2. UCB1 bandit selects action arm; Bayesian RCA fills params
     return _ucb1_math_action(obs, config)
