@@ -1,228 +1,284 @@
 {
-  "episodes": [
-    {
-      "episode": 0,
-      "difficulty": "easy",
-      "total_reward": -1.0,
-      "steps": 11
-    },
-    {
-      "episode": 1,
-      "difficulty": "easy",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 2,
-      "difficulty": "easy",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 3,
-      "difficulty": "easy",
-      "total_reward": -1.0,
-      "steps": 13
-    },
-    {
-      "episode": 4,
-      "difficulty": "easy",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 5,
-      "difficulty": "easy",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 6,
-      "difficulty": "easy",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 7,
-      "difficulty": "easy",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 8,
-      "difficulty": "easy",
-      "total_reward": -1.0,
-      "steps": 13
-    },
-    {
-      "episode": 9,
-      "difficulty": "easy",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 10,
-      "difficulty": "medium",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 11,
-      "difficulty": "medium",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 12,
-      "difficulty": "medium",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 13,
-      "difficulty": "medium",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 14,
-      "difficulty": "medium",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 15,
-      "difficulty": "medium",
-      "total_reward": -1.0,
-      "steps": 13
-    },
-    {
-      "episode": 16,
-      "difficulty": "medium",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 17,
-      "difficulty": "medium",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 18,
-      "difficulty": "medium",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 19,
-      "difficulty": "medium",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 20,
-      "difficulty": "hard",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 21,
-      "difficulty": "hard",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 22,
-      "difficulty": "hard",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 23,
-      "difficulty": "hard",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 24,
-      "difficulty": "hard",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 25,
-      "difficulty": "hard",
-      "total_reward": -1.0,
-      "steps": 13
-    },
-    {
-      "episode": 26,
-      "difficulty": "hard",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 27,
-      "difficulty": "hard",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 28,
-      "difficulty": "hard",
-      "total_reward": 0.0,
-      "steps": 12
-    },
-    {
-      "episode": 29,
-      "difficulty": "hard",
-      "total_reward": 0.0,
-      "steps": 12
-    }
-  ],
-  "summary": {
-    "easy": {
-      "mean": -0.3,
-      "min": -1.0,
-      "max": 0.0
-    },
-    "medium": {
-      "mean": -0.1,
-      "min": -1.0,
-      "max": 0.0
-    },
-    "hard": {
-      "mean": -0.1,
-      "min": -1.0,
-      "max": 0.0
-    }
+  "n_episodes": 100,
+  "baseline": {
+    "rewards": [
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0,
+      -15.0
+    ],
+    "mean": -15.0,
+    "min": -15.0,
+    "max": -15.0
   },
-  "ucb1_top_arms": [
+  "trained": {
+    "rewards": [
+      -1.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "mean": -0.08,
+    "min": -1.0,
+    "max": 0.0
+  },
+  "ucb1_arms": [
     {
       "arm": "holmes/QueryLogs",
-      "pulls": 30,
+      "pulls": 100,
       "mean_reward": 0.0
     },
     {
       "arm": "holmes/QueryMetrics",
-      "pulls": 30,
+      "pulls": 100,
       "mean_reward": 0.0
     },
     {
       "arm": "holmes/QueryTrace",
-      "pulls": 30,
+      "pulls": 100,
       "mean_reward": 0.0
     },
     {
       "arm": "holmes/FormHypothesis",
-      "pulls": 30,
+      "pulls": 100,
       "mean_reward": 0.0
     },
     {
       "arm": "argus/QueryMetrics",
-      "pulls": 30,
+      "pulls": 100,
       "mean_reward": 0.0
+    },
+    {
+      "arm": "forge/ScaleService",
+      "pulls": 100,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "forge/RollbackDeployment",
+      "pulls": 100,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "forge/DrainTraffic",
+      "pulls": 100,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "forge/ModifyRateLimit",
+      "pulls": 100,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "oracle/CloseIncident",
+      "pulls": 100,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "oracle/EscalateToHuman",
+      "pulls": 99,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "oracle/GenerateNewScenario",
+      "pulls": 99,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "forge/RestartService",
+      "pulls": 8,
+      "mean_reward": -1.0
     }
   ]
 }
