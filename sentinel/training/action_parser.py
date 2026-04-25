@@ -7,6 +7,7 @@ to a role-safe default action.
 """
 from __future__ import annotations
 
+import ast
 import json
 import logging
 import re
@@ -60,6 +61,15 @@ _AGENT_CATEGORY: dict[str, str] = {
 
 _CODE_BLOCK_RE = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
 _THINK_RE = re.compile(r"<think>[\s\S]*?</think>", re.IGNORECASE)
+_JSON_PREFIX_RE = re.compile(r"^\s*json\s*[:\-]?\s*", re.IGNORECASE)
+
+
+def extract_think(llm_output: str) -> str:
+    match = _THINK_RE.search(llm_output)
+    if not match:
+        return ""
+    inner = re.sub(r"^<think>|</think>$", "", match.group(0), flags=re.IGNORECASE)
+    return inner.strip()
 
 
 def parse_llm_action(
@@ -75,7 +85,7 @@ def parse_llm_action_result(
     fallback_agent: str = "holmes",
 ) -> tuple[dict[str, Any], bool]:
     """Return (action_dict, parsed_ok)."""
-    cleaned = _THINK_RE.sub("", llm_output).strip()
+    cleaned = _normalize_output(_THINK_RE.sub("", llm_output).strip())
 
     action = _extract_from_code_block(cleaned)
     if action is None:
@@ -88,9 +98,11 @@ def parse_llm_action_result(
         action = _extract_by_repair(cleaned)
 
     if action is None:
+        snippet = re.sub(r"\s+", " ", llm_output).strip()[:160]
         logger.warning(
-            "parse_llm_action: could not extract JSON from output (len=%d). Falling back to safe action.",
+            "parse_llm_action: could not extract JSON from output (len=%d, snippet=%r). Falling back to safe action.",
             len(llm_output),
+            snippet,
         )
         return _safe_fallback(fallback_agent), False
 
@@ -101,7 +113,7 @@ def _extract_from_code_block(text: str) -> dict[str, Any] | None:
     match = _CODE_BLOCK_RE.search(text)
     if not match:
         return None
-    return _try_parse(match.group(1).strip())
+    return _try_parse(_normalize_output(match.group(1).strip()))
 
 
 def _extract_raw_json(text: str) -> dict[str, Any] | None:
@@ -133,21 +145,98 @@ def _extract_by_brace_walk(text: str) -> dict[str, Any] | None:
 
 
 def _extract_by_repair(text: str) -> dict[str, Any] | None:
+    candidates: list[str] = []
+
     start = text.find("{")
-    if start == -1:
+    if start != -1:
+        fragment = text[start:].rstrip().rstrip("` \n\r\t")
+        candidates.append(fragment)
+
+    jsonish = _jsonish_fragment(text)
+    if jsonish:
+        candidates.append(jsonish)
+
+    for fragment in candidates:
+        for extra in ("", "}", "}}", "}}}"):
+            candidate = _try_parse(fragment + extra)
+            if candidate and "agent" in candidate and "name" in candidate:
+                return candidate
+    return None
+
+
+def _jsonish_fragment(text: str) -> str | None:
+    stripped = _normalize_output(text)
+    if not stripped:
         return None
-    fragment = text[start:].rstrip()
-    fragment = fragment.rstrip("` \n\r\t")
-    for extra in ("}", "}}", "}}}"):
-        candidate = _try_parse(fragment + extra)
-        if candidate and "agent" in candidate and "name" in candidate:
-            return candidate
+    if "agent" not in stripped or "name" not in stripped:
+        return None
+    if "{" not in stripped:
+        stripped = "{" + stripped
+    return stripped.rstrip(", \n\r\t")
+
+
+def _normalize_output(text: str) -> str:
+    text = text.strip()
+    text = text.replace("\u201c", '"').replace("\u201d", '"')
+    text = text.replace("\u2018", "'").replace("\u2019", "'")
+    text = _JSON_PREFIX_RE.sub("", text)
+    if text.lower().startswith("assistant:"):
+        text = text.split(":", 1)[1].strip()
+    return text
+
+
+def _try_python_dict(raw: str) -> dict[str, Any] | None:
+    try:
+        obj = ast.literal_eval(raw)
+    except (SyntaxError, ValueError):
+        return None
+    if isinstance(obj, dict):
+        return obj
+    return None
+
+
+def _repair_json_like(raw: str) -> str:
+    repaired = raw.strip().rstrip("` \n\r\t,")
+    repaired = repaired.replace("\u201c", '"').replace("\u201d", '"')
+    repaired = repaired.replace("\u2018", "'").replace("\u2019", "'")
+    if repaired.startswith('"agent"') or repaired.startswith("'agent'"):
+        repaired = "{" + repaired
+    if repaired.startswith("agent"):
+        repaired = '{"' + repaired[5:]
+    if repaired.count("{") > repaired.count("}"):
+        repaired += "}" * (repaired.count("{") - repaired.count("}"))
+    return repaired
+
+
+def _coerce_dict(obj: dict[str, Any]) -> dict[str, Any]:
+    if "params" not in obj:
+        obj["params"] = {}
+    return obj
+
+
+def _try_parse_loose(raw: str) -> dict[str, Any] | None:
+    repaired = _repair_json_like(raw)
+    candidate = _try_python_dict(repaired)
+    if candidate is not None:
+        return _coerce_dict(candidate)
+
+    candidate = _try_python_dict(repaired.replace("null", "None").replace("true", "True").replace("false", "False"))
+    if candidate is not None:
+        return _coerce_dict(candidate)
+
+    try:
+        obj = json.loads(repaired.replace("'", '"'))
+        if isinstance(obj, dict):
+            return _coerce_dict(obj)
+    except (json.JSONDecodeError, ValueError):
+        return None
     return None
 
 
 def _extract_balanced_object(text: str, start: int) -> dict[str, Any] | None:
     depth = 0
     in_string = False
+    string_quote = ""
     escape = False
     for i in range(start, len(text)):
         ch = text[i]
@@ -157,9 +246,15 @@ def _extract_balanced_object(text: str, start: int) -> dict[str, Any] | None:
         if ch == "\\" and in_string:
             escape = True
             continue
-        if ch == '"':
-            in_string = not in_string
-            continue
+        if ch in ('"', "'"):
+            if not in_string:
+                in_string = True
+                string_quote = ch
+                continue
+            if ch == string_quote:
+                in_string = False
+                string_quote = ""
+                continue
         if in_string:
             continue
         if ch == "{":
@@ -172,13 +267,16 @@ def _extract_balanced_object(text: str, start: int) -> dict[str, Any] | None:
 
 
 def _try_parse(raw: str) -> dict[str, Any] | None:
+    raw = _normalize_output(raw)
+    if not raw:
+        return None
     try:
         obj = json.loads(raw)
         if isinstance(obj, dict):
             return obj
     except (json.JSONDecodeError, ValueError):
-        return None
-    return None
+        pass
+    return _try_parse_loose(raw)
 
 
 def _validate_and_repair(action: dict[str, Any], fallback_agent: str) -> dict[str, Any]:

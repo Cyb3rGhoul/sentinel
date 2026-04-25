@@ -20,33 +20,29 @@ image = (
     .apt_install("git")
     .pip_install_from_requirements("requirements.txt")
     .pip_install("unsloth", "trl", "datasets")
-    .add_local_dir(
-        ".",
-        remote_path="/root/sentinel",
-        copy=True,
-        ignore=[
-            ".git",
-            ".venv",
-            "__pycache__",
-            ".pytest_cache",
-            "checkpoints",
-            ".mypy_cache",
-        ],
-    )
     .env({
         "PYTHONUNBUFFERED": "1",
         "HF_HUB_ENABLE_HF_TRANSFER": "1",
+        "PYTHONPATH": "/root/sentinel",
     })
 )
 
 volume = modal.Volume.from_name("sentinel-checkpoints", create_if_missing=True)
 
+sentinel_mount = modal.Mount.from_local_dir(
+    ".",
+    remote_path="/root/sentinel",
+    condition=lambda path: not any(
+        x in path for x in [".git", "__pycache__", ".pytest_cache", "checkpoints", ".venv", ".mypy_cache"]
+    ),
+)
 
 @app.function(
     image=image,
     gpu="A100-80GB",
     timeout=60 * 60 * 12,
     volumes={"/mnt/checkpoints": volume},
+    mounts=[sentinel_mount],
 )
 def train(
     agent: str = "holmes",
@@ -86,6 +82,7 @@ def train(
     gpu="A100-80GB",
     timeout=60 * 60 * 4,
     volumes={"/mnt/checkpoints": volume},
+    mounts=[sentinel_mount],
 )
 def evaluate(
     agent: str = "holmes",
@@ -118,6 +115,7 @@ def evaluate(
     image=image,
     gpu="A100-80GB",
     timeout=60 * 10,
+    mounts=[sentinel_mount],
 )
 def gpu_sanity() -> str:
     import subprocess

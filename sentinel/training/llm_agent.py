@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_GEN_KWARGS: dict[str, Any] = {
     "max_new_tokens": 96,
-    "temperature": 0.0,
-    "top_p": 1.0,
-    "do_sample": False,
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "do_sample": True,
     "pad_token_id": 0,
 }
 
@@ -37,9 +37,6 @@ class LLMAgent:
         gen_kwargs = dict(_DEFAULT_GEN_KWARGS)
         if hasattr(tokenizer, "eos_token_id") and tokenizer.eos_token_id is not None:
             gen_kwargs["pad_token_id"] = tokenizer.eos_token_id
-        if hasattr(tokenizer, "convert_tokens_to_ids"):
-            gen_kwargs["stop_strings"] = ["}\n", "}\n\n", "}\n\n\n"]
-            gen_kwargs["tokenizer"] = tokenizer
         self._gen_kwargs = gen_kwargs
 
     def act(self, obs: dict[str, Any], step: int = 0) -> dict[str, Any]:
@@ -107,7 +104,7 @@ class LLMAgent:
         if self.use_chat_template:
             raw = "{" + raw
 
-        return raw
+        return _truncate_at_first_object(raw)
 
     def _fallback_action(self) -> dict[str, Any]:
         if self.agent_role == "forge":
@@ -187,3 +184,44 @@ def make_grpo_reward_fn(env: Any) -> Any:
         return rewards
 
     return _reward_fn
+
+
+def _truncate_at_first_object(raw: str) -> str:
+    """Return the substring up to and including the first balanced '}'."""
+    start = raw.find("{")
+    if start == -1:
+        return raw
+
+    depth = 0
+    in_string = False
+    string_quote = ""
+    escape = False
+
+    for i in range(start, len(raw)):
+        ch = raw[i]
+        if escape:
+            escape = False
+            continue
+        if ch == "\\" and in_string:
+            escape = True
+            continue
+        if ch in ('"', "'"):
+            if not in_string:
+                in_string = True
+                string_quote = ch
+                continue
+            if ch == string_quote:
+                in_string = False
+                string_quote = ""
+                continue
+        if in_string:
+            continue
+        
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return raw[: i + 1]
+
+    return raw

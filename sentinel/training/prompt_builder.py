@@ -5,11 +5,6 @@ import json
 from typing import Any
 
 _ACTION_SCHEMA = """\
-Return exactly one JSON object and nothing else.
-Do not use markdown fences.
-Do not explain your reasoning.
-Do not add extra keys.
-
 Required schema:
 {
   "agent": "<holmes|forge|argus|hermes|oracle>",
@@ -68,6 +63,12 @@ _SYSTEM_PROMPTS: dict[str, str] = {
 }
 
 
+_SYSTEM_SUFFIX = (
+    "\n\nIMPORTANT: Output ONLY one JSON object. No explanation, no markdown, no text before or after. "
+    "Your entire response must be a single JSON object under 60 tokens."
+)
+
+
 def build_prompt(
     obs: dict[str, Any],
     agent_role: str = "holmes",
@@ -76,7 +77,7 @@ def build_prompt(
     system = _SYSTEM_PROMPTS.get(agent_role, _SYSTEM_PROMPTS["holmes"])
     user_block = _format_observation(obs, step_number)
     return (
-        f"{system}\n\n"
+        f"{system}{_SYSTEM_SUFFIX}\n\n"
         f"{_ACTION_SCHEMA}\n\n"
         f"{user_block}\n\n"
         "Output JSON now:"
@@ -91,7 +92,7 @@ def build_messages(
     system = _SYSTEM_PROMPTS.get(agent_role, _SYSTEM_PROMPTS["holmes"])
     user_block = _format_observation(obs, step_number)
     return [
-        {"role": "system", "content": f"{system}\n\n{_ACTION_SCHEMA}"},
+        {"role": "system", "content": f"{system}{_SYSTEM_SUFFIX}\n\n{_ACTION_SCHEMA}"},
         {"role": "user", "content": user_block},
         {"role": "assistant", "content": "{"},
     ]
@@ -146,9 +147,6 @@ def _format_observation(obs: dict[str, Any], step_number: int) -> str:
             f"SLA breached={sla.get('breached', False)} current_mttr={sla.get('current_mttr', step_number)} blast_radius={sla.get('blast_radius', 0)}"
         )
 
-    lines.append(
-        'Example valid output: {"agent":"holmes","category":"investigative","name":"QueryLogs","params":{"service":"postgres-primary","time_range":[0,300]}}'
-    )
     return "\n".join(lines)
 
 

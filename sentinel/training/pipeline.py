@@ -1,9 +1,8 @@
 """GRPO training pipeline for SENTINEL.
 
-This module is intentionally LLM-first:
+This is the active training path:
   - action selection is driven by an LLMAgent during rollouts
   - GRPO uses SENTINEL rewards as the optimisation signal
-  - there is no math-policy fallback inside the active training path
 """
 from __future__ import annotations
 
@@ -67,7 +66,7 @@ class TrainingConfig:
     checkpoint_dir: str = "checkpoints"
     log_file: str = "training_log.jsonl"
     sla_breach_threshold: int = 50
-    max_completion_length: int = 128
+    max_completion_length: int = 96
     parser_failure_abort_rate: float = 0.6
     parser_failure_warmup_steps: int = 8
 
@@ -165,9 +164,9 @@ def build_grpo_trainer(
         output_dir=config.checkpoint_dir,
         per_device_train_batch_size=config.batch_size,
         max_steps=config.max_steps,
-        num_generations=2,
+        num_generations=4,
         max_completion_length=config.max_completion_length,
-        temperature=0.1,
+        temperature=0.7,
         top_p=1.0,
         learning_rate=5e-6,
         lr_scheduler_type="cosine",
@@ -290,12 +289,12 @@ def run_training_loop(
     start_episode: int = 0,
     llm_agent: Any = None,
 ) -> list[EpisodeMetrics]:
-    """Run the LLM-only training loop from *start_episode* to *config.max_steps*."""
+    """Run the GRPO training loop from *start_episode* to *config.max_steps*."""
     _ensure_llm_agent(llm_agent)
     all_metrics: list[EpisodeMetrics] = []
     logger.info(
-        "Starting training loop: episodes=%d, mode=LLM, start=%d",
-        config.max_steps, start_episode,
+        "Starting training loop: episodes=%d, mode=%s, start=%d",
+        config.max_steps, "LLM", start_episode,
     )
 
     for episode in range(start_episode, config.max_steps):
