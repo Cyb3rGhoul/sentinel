@@ -303,11 +303,11 @@ def build_dashboard(env: Any = None) -> Any:
 
 
 # ---------------------------------------------------------------------------
-# Module-level launch (required for HuggingFace Spaces auto-detection)
+# Module-level dashboard object (import-safe)
 # ---------------------------------------------------------------------------
 
 _env = _create_demo_env()
 demo = build_dashboard(_env)
 
-if demo is not None:
+if __name__ == "__main__" and demo is not None:
     demo.launch(share=False)

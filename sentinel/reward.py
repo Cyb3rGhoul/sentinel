@@ -53,6 +53,9 @@ class Reward_Function:
         action: Action,
         world_state: NexaStackWorldState,
         incident_state: IncidentState,
+        previous_blast_radius: set[str] | None = None,
+        current_blast_radius: set[str] | None = None,
+        target_was_healthy: bool = False,
     ) -> float:
         """Return the immediate step reward for *action*.
 
@@ -69,11 +72,14 @@ class Reward_Function:
         reward = 0.0
 
         # ── Blast radius expansion penalty ────────────────────────────
-        pre_br = incident_state.current_blast_radius
-        post_br = (
-            world_state.incident_state.current_blast_radius
-            if world_state.incident_state is not None
-            else pre_br
+        pre_br = set(previous_blast_radius or incident_state.current_blast_radius)
+        post_br = set(
+            current_blast_radius
+            or (
+                world_state.incident_state.current_blast_radius
+                if world_state.incident_state is not None
+                else pre_br
+            )
         )
         if len(post_br) > len(pre_br):
             reward -= 1.0
@@ -87,9 +93,10 @@ class Reward_Function:
         if action.name == "RestartService":
             target = action.params.get("service", "")
             if target and target in world_state.services:
-                svc_metrics = world_state.services[target]
-                if svc_metrics.availability:
-                    reward -= 1.0
+                if not target_was_healthy:
+                    target_was_healthy = world_state.services[target].availability
+            if target and target_was_healthy:
+                reward -= 1.0
 
         # ── Investigative reward shaping ──────────────────────────────
         target_service = action.params.get("service", "")
@@ -138,10 +145,18 @@ class Reward_Function:
         ``trajectory.steps[-1].info`` keys ``identified_root_cause`` and
         ``identified_failure_type`` (both default to empty string if absent).
         """
-        # Extract identified root cause from the last step's info dict
+        # Extract identified root cause from the last step's info dict.
+        # If the caller did not explicitly attach this, infer it from the
+        # trajectory / incident state so episode rewards remain meaningful.
         last_info: dict = trajectory.steps[-1].info if trajectory.steps else {}
         identified_root_cause: str = last_info.get("identified_root_cause", "")
         identified_failure_type: str = last_info.get("identified_failure_type", "")
+        if not identified_root_cause or not identified_failure_type:
+            inferred_service, inferred_type = self._infer_identification(
+                trajectory, incident_state
+            )
+            identified_root_cause = identified_root_cause or inferred_service
+            identified_failure_type = identified_failure_type or inferred_type
 
         r1 = self._r1_root_cause_accuracy(
             incident_state, identified_root_cause, identified_failure_type
@@ -256,3 +271,25 @@ class Reward_Function:
                 if abs(value - baseline) / baseline > _RECOVERY_TOLERANCE:
                     return False
         return True
+
+    def _infer_identification(
+        self,
+        trajectory: Trajectory,
+        incident_state: IncidentState,
+    ) -> tuple[str, str]:
+        """Infer the final diagnosis from explicit metadata or hypotheses."""
+        if incident_state.active_hypotheses:
+            best = max(
+                incident_state.active_hypotheses,
+                key=lambda h: h.confidence,
+            )
+            return best.service, best.failure_type.value
+
+        for step in reversed(trajectory.steps):
+            if step.action.name == "FormHypothesis":
+                return (
+                    step.action.params.get("service", ""),
+                    step.action.params.get("failure_type", ""),
+                )
+
+        return "", ""

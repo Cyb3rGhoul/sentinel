@@ -102,8 +102,8 @@ reward:
 # -----------------------------------------------------------
 training:
   algorithm: GRPO
-  base_model: "unsloth/Meta-Llama-3-8B-Instruct"
-  quantization: 4bit
+  base_model: "Qwen/Qwen2.5-7B-Instruct"
+  quantization: bf16_or_fp16
   lora:
     r: 16
     alpha: 32
@@ -115,9 +115,10 @@ training:
       - gate_proj
       - up_proj
       - down_proj
-  batch_size: 4
+  batch_size: 2
   max_steps: 1000
-  simulation_mode: true     # runs without GPU; gracefully falls back from unsloth/trl
+  hosted_gpu: "A100-80GB"
+  note: "Stable training path uses Qwen2.5-7B-Instruct with --no-4bit on hosted GPU."
 
 # -----------------------------------------------------------
 # Scenario library
@@ -145,6 +146,7 @@ dependencies:
   optional_gpu:
     - unsloth
     - trl
+    - datasets
 
 # -----------------------------------------------------------
 # Quick start
@@ -167,8 +169,8 @@ quickstart: |
 # -----------------------------------------------------------
 submission:
   hackathon: "Meta PyTorch OpenEnv Hackathon 2026"
-  track: "Multi-Agent RL Environments"
-  colab_notebook: "sentinel_colab_demo.ipynb"
+  track: "World Modeling / Long-Horizon Planning"
+  colab_notebook: "sentinel_colab_training.ipynb"
   blog_post: "blog/huggingface_post.md"
   video_script: "blog/youtube_script.md"
   results_dir: "results/"

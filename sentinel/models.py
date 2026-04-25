@@ -254,6 +254,8 @@ class IncidentContext(BaseModel):
     active_hypotheses: list[dict]
     attempted_remediations: list[dict]
     current_blast_radius: list[str]
+    step_count: int = 0
+    resolved: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +269,7 @@ class Observation(TypedDict):
     recent_logs: list[LogEntry]
     active_traces: list[Trace]
     incident_context: dict
-    sla_state: dict[str, bool]
+    sla_state: dict[str, Any]
 
 
 # ---------------------------------------------------------------------------

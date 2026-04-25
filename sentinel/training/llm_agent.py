@@ -4,7 +4,7 @@ Provides a clean interface that:
   1. Converts the Gymnasium obs dict → text prompt (prompt_builder)
   2. Runs model.generate() with sampling params
   3. Parses the output → valid Action dict (action_parser)
-  4. Falls back to UCB1+Bayesian math when GPU/model unavailable
+  4. Falls back to a conservative role-safe action on parser/inference failure
 
 Usage:
     agent = LLMAgent(model, tokenizer, agent_role="holmes")
@@ -109,7 +109,7 @@ class LLMAgent:
             return action
         except Exception as exc:
             logger.warning(
-                "[LLMAgent/%s] Inference error at step %d: %s — using fallback.",
+                "[LLMAgent/%s] Inference error at step %d: %s — using safe fallback.",
                 self.agent_role, step, exc,
             )
             return self._fallback_action()
@@ -184,6 +184,20 @@ class LLMAgent:
                 "name":     "ScaleService",
                 "params":   {"service": "api-gateway", "replicas": 2},
             }
+        if self.agent_role == "hermes":
+            return {
+                "agent":    "hermes",
+                "category": "meta",
+                "name":     "EscalateToHuman",
+                "params":   {"reason": "Unable to produce valid deployment action"},
+            }
+        if self.agent_role == "oracle":
+            return {
+                "agent":    "oracle",
+                "category": "meta",
+                "name":     "EscalateToHuman",
+                "params":   {"reason": "Unable to produce valid closure decision"},
+            }
         return {
             "agent":    "holmes",
             "category": "investigative",
@@ -224,8 +238,8 @@ def make_grpo_reward_fn(env: Any) -> Any:
 
     This wrapper:
       1. Parses each completion as an action
-      2. Executes it in a copy of the current env state (via rollout)
-      3. Returns the step reward as the GRPO signal
+      2. Scores the action against the current env incident state
+      3. Returns the shaped step reward as the GRPO signal
     """
     def _reward_fn(
         prompts: list[str],
@@ -237,12 +251,20 @@ def make_grpo_reward_fn(env: Any) -> Any:
         rewards: list[float] = []
         for completion in completions:
             try:
-                action = parse_llm_action(completion, fallback_agent=agent_role)
+                from sentinel.models import Action
+
+                action = Action(**parse_llm_action(completion, fallback_agent=agent_role))
                 # Use the last known obs for step reward approximation
-                if obs is not None and hasattr(env, "reward_function"):
+                if obs is not None and hasattr(env, "reward_function") and env._incident_state is not None:
                     rf = env.reward_function
                     inc = env._incident_state
-                    step_r = rf.compute_step_reward(action, env.world_state, inc)
+                    step_r = rf.compute_step_reward(
+                        action,
+                        env.world_state,
+                        inc,
+                        previous_blast_radius=set(inc.current_blast_radius),
+                        current_blast_radius=set(inc.current_blast_radius),
+                    )
                     rewards.append(float(step_r))
                 else:
                     rewards.append(0.0)

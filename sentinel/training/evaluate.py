@@ -1,7 +1,7 @@
 """Evaluation pipeline for SENTINEL.
 
-Runs held-out episodes per difficulty tier and reports mean ± std
-for R1, R2, R3, R4, total reward, and MTTR.
+Runs held-out episodes per difficulty tier using the active LLMAgent and
+reports mean ± std for R1, R2, R3, R4, total reward, and MTTR.
 """
 from __future__ import annotations
 
@@ -9,8 +9,6 @@ import statistics
 import uuid
 from dataclasses import dataclass
 from typing import Any
-
-from sentinel.training.pipeline import get_heuristic_action, get_placeholder_action
 
 
 @dataclass
@@ -36,14 +34,12 @@ def _run_single_eval_episode(
     reward_fn: Any,
     difficulty: str,
     episode_seed: int,
+    llm_agent: Any,
 ) -> tuple[float, float, float, float, float, float]:
-    """Run one evaluation episode and return (r1, r2, r3, r4, total, mttr).
-
-    Resets the env with the given seed, steps until terminated or truncated
-    using the placeholder action, then computes the episode reward.
-    """
+    """Run one evaluation episode and return (r1, r2, r3, r4, total, mttr)."""
     from sentinel.models import Action, RewardBreakdown, Trajectory, TrajectoryStep
 
+    llm_agent.reset()
     obs, info = env.reset(seed=episode_seed)
     steps: list[TrajectoryStep] = []
     terminated = False
@@ -51,13 +47,8 @@ def _run_single_eval_episode(
     step_count = 0
 
     while not (terminated or truncated):
-        # Use the trained heuristic agent, not a static placeholder
-        action_dict = dict(get_heuristic_action(obs, agent_role="holmes"))
-
-        # Switch to forge after sufficient investigation
-        if step_count >= 3:
-            action_dict = dict(get_heuristic_action(obs, agent_role="forge"))
-
+        action_dict = dict(llm_agent.act(obs, step=step_count))
+        action_dict.pop("_llm_completion", None)
         obs_next, reward, terminated, truncated, step_info = env.step(action_dict)
 
         try:
@@ -117,23 +108,16 @@ def _run_single_eval_episode(
 def run_evaluation(
     env: Any,
     reward_fn: Any,
+    llm_agent: Any,
     episodes_per_tier: int = 10,
     seed: int = 0,
 ) -> dict[str, EvalResult]:
-    """Run evaluation across all three difficulty tiers.
-
-    For each tier, temporarily overrides the env's difficulty distribution
-    to 100% that tier, runs `episodes_per_tier` episodes, then restores
-    the original distribution.
-
-    Returns a dict keyed by difficulty tier ("easy", "medium", "hard").
-    """
+    """Run evaluation across all three difficulty tiers."""
     tiers = ["easy", "medium", "hard"]
     original_distribution = dict(env._difficulty_distribution)
     results: dict[str, EvalResult] = {}
 
     for tier_index, difficulty in enumerate(tiers):
-        # Override distribution to 100% this tier
         env._difficulty_distribution = {t: (1.0 if t == difficulty else 0.0) for t in tiers}
 
         r1s, r2s, r3s, r4s, totals, mttrs = [], [], [], [], [], []
@@ -141,7 +125,7 @@ def run_evaluation(
         for episode_index in range(episodes_per_tier):
             episode_seed = seed + tier_index * episodes_per_tier + episode_index
             r1, r2, r3, r4, total, mttr = _run_single_eval_episode(
-                env, reward_fn, difficulty, episode_seed
+                env, reward_fn, difficulty, episode_seed, llm_agent
             )
             r1s.append(r1)
             r2s.append(r2)
@@ -150,7 +134,6 @@ def run_evaluation(
             totals.append(total)
             mttrs.append(mttr)
 
-        # Restore original distribution after this tier
         env._difficulty_distribution = dict(original_distribution)
 
         def _std(values: list[float]) -> float:

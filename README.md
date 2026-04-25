@@ -1,12 +1,9 @@
 <p align="center">
-  <h1 align="center">🚨 SENTINEL</h1>
+  <h1 align="center">SENTINEL</h1>
   <p align="center">
-    <strong>Multi-Agent Reinforcement Learning Environment for Autonomous Cloud Incident Response</strong>
+    <strong>LLM-First Incident Response Environment for Autonomous Cloud Operations</strong>
   </p>
   <p align="center">
-    <a href="https://colab.research.google.com/github/SayantikaLaskar/sentinel/blob/main/sentinel_colab_demo.ipynb">
-      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/>
-    </a>
     <img src="https://img.shields.io/badge/OpenEnv-Hackathon_2026-blue" alt="OpenEnv"/>
     <img src="https://img.shields.io/badge/Python-3.10+-green" alt="Python"/>
     <img src="https://img.shields.io/badge/Gymnasium-1.3.0-orange" alt="Gymnasium"/>
@@ -16,232 +13,236 @@
 
 ---
 
-## Problem
+## What You Are Building
 
-LLMs fail at **long-horizon operational reasoning** — diagnosing cascading failures across 30 interconnected microservices where every action changes a partially observable world and wrong moves make things worse.
+SENTINEL is a Gymnasium-compatible environment for training and evaluating LLM agents on realistic cloud incident response.
 
-SENTINEL turns this into a **trainable Gymnasium environment** where an agent must:
-- Investigate alerts under partial observability (black-box services, missing logs, red herring signals)
-- Identify the root cause using evidence, not guessing
-- Remediate without expanding the blast radius
-- Do it all within an SLA time window
+It simulates:
+- a 30-service microservice platform
+- cascading failures over a dependency graph
+- partial observability with hidden services, missing logs, and red herrings
+- role-constrained actions for investigation, remediation, deployment, and incident closure
 
-This is **not a toy problem** — it models real-world SRE incident response with realistic failure propagation, dependency graphs, and multi-agent coordination.
+The active training path is **LLM-only**:
+- observations are converted into structured prompts
+- the model emits one valid JSON action
+- the environment executes that action
+- GRPO optimizes the model against the resulting reward signal
 
----
-
-## Environment
-
-### What the Agent Observes
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `metrics_snapshot` | dict | CPU, memory, error rate, latency, saturation per service |
-| `active_alerts` | list | Fired alerts with service, severity, timestamp |
-| `causal_graph_snapshot` | flat array | 30×30 adjacency matrix of service dependencies |
-| `incident_context` | dict | Blast radius, active hypotheses, elapsed time |
-
-### What the Agent Does
-
-5 specialized agents with role-constrained actions:
-
-| Agent | Role | Actions |
-|-------|------|---------|
-| **HOLMES** | Root-cause detective | QueryLogs, QueryMetrics, QueryTrace, FormHypothesis |
-| **FORGE** | Remediation executor | RestartService, ScaleService, RollbackDeployment, DrainTraffic |
-| **ARGUS** | Monitoring | QueryLogs, QueryMetrics |
-| **HERMES** | Deployment | CanaryDeploy, FullDeploy, Rollback |
-| **ORACLE** | Self-improvement | GenerateNewScenario, CloseIncident, EscalateToHuman |
-
-### How the Agent is Rewarded (RLVR — 4 Components)
-
-```
-Total = 0.35·R1 + 0.30·R2 + 0.25·R3 + 0.10·R4 + penalties
-```
-
-| Component | What it measures | Signal type |
-|-----------|-----------------|-------------|
-| **R1** (35%) | Root cause accuracy — did the agent identify the correct failing service? | Binary (verifiable) |
-| **R2** (30%) | MTTR efficiency — how fast was the incident resolved vs SLA? | Continuous |
-| **R3** (25%) | Recovery quality — are all services back to healthy baselines? | Per-service delta |
-| **R4** (10%) | Blast radius — did the agent minimize collateral damage? | Set comparison |
-| **Penalties** | Harmful actions that expand blast radius or wrong-role actions | Negative |
-
-Weights are configurable via `env_spec.yaml`.
+There is no active math-policy fallback in the training loop anymore.
 
 ---
 
-## Mathematical Algorithms (No LLM Required)
+## Why It Matters
 
-SENTINEL uses **4 research-backed algorithms** instead of LLM API calls:
+Operational incidents are long-horizon tasks:
+- alerts can be misleading
+- evidence is incomplete
+- wrong actions can expand the blast radius
+- the agent has to diagnose and remediate under time pressure
 
-### 1. Bayesian Noisy-OR Root Cause Analysis
-> Pearl, J. (1988). *Probabilistic Reasoning in Intelligent Systems*. Applied per MicroRank (WWW 2021).
-
-```
-P(root = s | alerts) ∝ prior(s) × ∏ P(alert_j | s)
-```
-Uses the dependency graph adjacency matrix as a causal model. Each alert is treated as a Noisy-OR gate — the probability that service `s` caused alert `j` depends on whether `s` is upstream of `j` in the CDG.
-
-### 2. Personalized PageRank for Remediation Ranking
-> MicroRank (WWW 2021). Brin & Page (1998).
-
-```
-r_{t+1}(i) = α · Σ_j (A_{j→i} / deg(j)) · r_t(j) + (1-α) · v_i
-```
-Where `v` is the personalisation vector biased toward anomalous services (from Bayesian RCA posteriors). Ranks services by their likelihood of being the best remediation target.
-
-### 3. ALP Curriculum for Oracle Scenario Generation
-> Portelas et al. (2020). *Teacher algorithms for curriculum learning of Deep RL.* CoRL 2020.
-
-```
-ALP_t(c) = |R_t(c) - R_{t-Δt}(c)|
-```
-Oracle generates new incident scenarios by selecting the (difficulty, failure_type) pair with the **highest absolute learning progress** — targeting the agent's zone of proximal development.
-
-### 4. UCB1 Bandit for Action Selection
-> Auer, Cesa-Bianchi & Fischer (2002). *Finite-time Analysis of the Multiarmed Bandit Problem.* Machine Learning, 47, 235–256.
-
-```
-I_i(t) = x̄_i + √(2 · ln(t) / n_i)
-```
-Each of the 13 possible actions is an arm. UCB1 balances exploitation (high-reward actions) with exploration (rarely tried actions). Achieves logarithmic regret.
+SENTINEL turns that into a trainable benchmark instead of a toy Q&A task.
 
 ---
 
-## Results
+## Core Environment
 
-### Baseline vs Trained Agent
+### Observation
 
-| Metric | Baseline (random) | Trained (UCB1 + Bayesian) |
-|--------|-------------------|---------------------------|
-| Mean Reward | -0.30 | -0.10 |
-| Min Reward | -1.00 | -1.00 |
-| Max Reward | 0.00 | 0.00 |
+Each step exposes:
+- `metrics_snapshot`
+- `active_alerts`
+- `causal_graph_snapshot`
+- `recent_logs`
+- `active_traces`
+- `incident_context`
+- `sla_state`
 
-### Training Curves
+### Action Roles
 
-![Training Curves](results/training_curves.png)
+| Agent | Purpose | Typical actions |
+|-------|---------|-----------------|
+| `holmes` | Root-cause investigation | `QueryLogs`, `QueryMetrics`, `QueryTrace`, `FormHypothesis` |
+| `forge` | Remediation | `RestartService`, `ScaleService`, `RollbackDeployment`, `DrainTraffic`, `ModifyRateLimit`, `ModifyConfig` |
+| `hermes` | Deployment changes | `CanaryDeploy`, `FullDeploy`, `Rollback` |
+| `oracle` | Closure / escalation / scenario management | `CloseIncident`, `EscalateToHuman`, `GenerateNewScenario` |
+| `argus` | Monitoring support | `QueryLogs`, `QueryMetrics` |
 
-### Behavior Transcript (Before vs After)
+### Reward
 
-**Before (random):** Always queries the same service regardless of which service is actually failing.
+Episode reward combines:
+- `R1`: diagnosis accuracy
+- `R2`: MTTR efficiency
+- `R3`: recovery quality
+- `R4`: blast-radius minimization
+- penalties for harmful or invalid behavior
 
-**After (trained):** Bayesian RCA identifies the most-alerted service, UCB1 selects the right action type, and the agent targets the actual root cause.
+Step rewards also shape:
+- useful investigation
+- correct hypotheses
+- targeted remediation
+- harmful blast-radius expansion
+- restarting healthy services
 
-Full transcript: [`results/before_after_transcript.md`](results/before_after_transcript.md)
+---
+
+## Which Agents To Train
+
+Right now, the highest-value trainable agents are:
+- `holmes`: because diagnosis quality determines whether the rest of the workflow is even correct
+- `forge`: because remediation quality determines MTTR, recovery quality, and blast-radius reduction
+
+Why not train all agents first:
+- `argus` is mostly an observation helper and overlaps heavily with `holmes`
+- `hermes` is narrower and can start as a deterministic deployment-safety policy
+- `oracle` is meta-control and scenario management, which is useful but less critical than diagnosis + remediation for the main benchmark loop
+
+For a hackathon-grade result, training `holmes` and `forge` first is the correct priority.
+
+If you have GPU budget, the next order is:
+1. `hermes`
+2. `oracle`
+3. `argus`
 
 ---
 
 ## Quick Start
 
 ```bash
-# Clone
-git clone https://github.com/SayantikaLaskar/sentinel.git
-cd sentinel
-
-# Install
 pip install -r requirements.txt
-
-# Run environment
-python -c "from sentinel.env import Sentinel_Env; env=Sentinel_Env(); obs,info=env.reset(); print(info); print(env.render())"
-
-# Run 30-episode simulation with math engine
-python run_simulation.py
-
-# Generate training curves plot
-python plot_results.py
-
-# Run tests
-pytest tests/ -v
+python -m pytest -q
+python -c "from sentinel.env import Sentinel_Env; env = Sentinel_Env(); obs, info = env.reset(); print(info)"
 ```
 
-### Colab Notebook
+---
 
-**[▶ Open in Google Colab](https://colab.research.google.com/github/SayantikaLaskar/sentinel/blob/main/sentinel_colab_demo.ipynb)**
+## Training
 
-Runs top-to-bottom, no GPU needed, no API keys needed. Produces plots and transcripts.
+Training requires:
+- NVIDIA CUDA GPU
+- `unsloth`
+- `trl`
+- `datasets`
+- latest `openenv-core`
+
+Recommended hosted path:
+
+```bash
+modal run modal_train.py::gpu_sanity
+modal run modal_train.py::train --agent holmes --episodes 300 --batch-size 2
+modal run modal_train.py::train --agent forge --episodes 300 --batch-size 2
+```
+
+The stable configuration uses `Qwen/Qwen2.5-7B-Instruct` with `--no-4bit` on an `A100-80GB`.
+
+Local or other rented GPU:
+
+```bash
+python train.py --agent holmes --model Qwen/Qwen2.5-7B-Instruct --no-4bit --episodes 500 --batch-size 2
+python train.py --agent forge --model Qwen/Qwen2.5-7B-Instruct --no-4bit --episodes 500 --batch-size 2
+python train.py --agent hermes --model Qwen/Qwen2.5-7B-Instruct --no-4bit --episodes 300 --batch-size 2
+python train.py --agent oracle --model Qwen/Qwen2.5-7B-Instruct --no-4bit --episodes 300 --batch-size 2
+python train.py --agent argus --model Qwen/Qwen2.5-7B-Instruct --no-4bit --episodes 300 --batch-size 2
+```
+
+Detailed hosted-GPU instructions are in `TRAINING.md`.
+
+---
+
+## Submission Assets
+
+Judge-facing materials live here:
+- `sentinel_modal_notebook.ipynb`
+- `openenv.yaml`
+- `sentinel_colab_training.ipynb`
+- `TRAINING.md`
+- `blog/huggingface_post.md`
+- `blog/youtube_script.md`
+- `results/`
+- `HACKATHON_CHECKLIST.md`
+
+Add these links before submission:
+- Hugging Face Space URL
+- Hugging Face blog URL or YouTube URL
+- final training plots in `results/`
+- before/after evaluation summary in `README.md`
+
+---
+
+## Hackathon Fit
+
+SENTINEL is best positioned as:
+- primary: `World Modeling`
+- secondary: `Long-Horizon Planning`
+
+Why:
+- the agent operates inside a partially observable cloud-operations world
+- incidents require long multi-step diagnosis and remediation
+- actions interact with realistic system state instead of static text tasks
+
+---
+
+## Judge Checklist
+
+- uses the current OpenEnv package path via `openenv-core==0.2.3`
+- provides a working TRL / Unsloth training path
+- includes a Modal-native notebook for hosted training: `sentinel_modal_notebook.ipynb`
+- includes a Colab notebook for hosted training: `sentinel_colab_training.ipynb`
+- includes an OpenEnv manifest: `openenv.yaml`
+- includes a FastAPI server for deployment: `sentinel/api/server.py`
+- includes blog/video draft materials
+- includes result artifacts and plotting workflow
+
+Pending before final submission:
+- add the real Hugging Face Space URL
+- run full multi-episode training and commit final plots
+- update README with final before/after metrics
 
 ---
 
 ## Project Structure
 
-```
+```text
 sentinel/
-├── sentinel/                   # Core package
-│   ├── env.py                  # Gymnasium environment (reset/step/render)
-│   ├── math_engine.py          # Bayesian RCA, PageRank, ALP, UCB1
-│   ├── reward.py               # R1/R2/R3/R4 RLVR reward function
-│   ├── models.py               # Pydantic data models (Action, Trajectory, etc.)
-│   ├── world_state.py          # 30-service NexaStack topology
-│   ├── cascade_engine.py       # Failure propagation on dependency graph
-│   ├── observability.py        # Partial observability layer
-│   ├── incident_generator.py   # Scenario sampling from incident library
-│   ├── config.py               # YAML config loader
-│   ├── agents/                 # 5 specialized agents
-│   │   ├── holmes.py           # Root-cause detective
-│   │   ├── forge.py            # Remediation executor
-│   │   ├── argus.py            # Monitoring agent
-│   │   ├── hermes.py           # Deployment controller
-│   │   └── oracle.py           # Self-improvement (ALP curriculum)
+├── sentinel/
+│   ├── env.py
+│   ├── reward.py
+│   ├── models.py
+│   ├── world_state.py
+│   ├── cascade_engine.py
+│   ├── observability.py
+│   ├── incident_generator.py
+│   ├── config.py
+│   ├── agents/
 │   ├── training/
-│   │   ├── pipeline.py         # GRPO training loop + UCB1 action selection
-│   │   └── evaluate.py         # Per-tier evaluation harness
+│   │   ├── pipeline.py
+│   │   ├── llm_agent.py
+│   │   ├── prompt_builder.py
+│   │   ├── action_parser.py
+│   │   └── evaluate.py
 │   └── api/
-│       └── server.py           # FastAPI server for client-server separation
-├── demo/app.py                 # Gradio dashboard
-├── results/                    # Generated artifacts
-│   ├── training_curves.png     # Reward plots
-│   ├── simulation_results.json # Episode-level data
-│   └── before_after_transcript.md
-├── tests/                      # Unit + property + integration tests
-├── sentinel_colab_demo.ipynb   # Runnable Colab notebook
-├── openenv.yaml                # OpenEnv manifest
-├── env_spec.yaml               # Environment config
-├── incident_library.yaml       # 18 incident scenarios (easy/medium/hard)
-├── requirements.txt            # Dependencies
-├── Dockerfile                  # Container support
-└── docker-compose.yml
+│       └── server.py
+├── demo/app.py
+├── train.py
+├── tests/
+├── env_spec.yaml
+├── incident_library.yaml
+├── requirements.txt
+└── TRAINING.md
 ```
 
 ---
 
-## Submission Checklist
+## Current Workspace Status
 
-- [x] OpenEnv-compatible environment manifest (`openenv.yaml`)
-- [x] Gymnasium API: `reset()` / `step()` / `render()` / `close()`
-- [x] Working training script (`sentinel/training/pipeline.py`)
-- [x] Colab notebook — runs top-to-bottom (`sentinel_colab_demo.ipynb`)
-- [x] Reward curves image (`results/training_curves.png`)
-- [x] Before/after behavior transcript (`results/before_after_transcript.md`)
-- [x] Simulation results JSON (`results/simulation_results.json`)
-- [x] Blog post (`blog/huggingface_post.md`)
-- [x] Video script (`blog/youtube_script.md`)
-- [x] Complete README with results
-- [x] Full test suite (unit + property + integration)
-- [x] Docker support
+- reward wiring is fixed
+- diagnosis metadata flows correctly into episode reward
+- training and evaluation are LLM-only
+- prompt/action schema matches the actual environment
+- demo import side effects were removed
+- full tests pass
 
----
-
-## Demo & Storytelling
-
-| Asset | Link |
-|-------|------|
-| 📓 Colab Notebook | [sentinel_colab_demo.ipynb](https://colab.research.google.com/github/SayantikaLaskar/sentinel/blob/main/sentinel_colab_demo.ipynb) |
-| 📝 HuggingFace Blog | [blog/huggingface_post.md](blog/huggingface_post.md) |
-| 🎬 Video Script | [blog/youtube_script.md](blog/youtube_script.md) |
-| 📊 Training Curves | [results/training_curves.png](results/training_curves.png) |
-| 📋 Behavior Transcript | [results/before_after_transcript.md](results/before_after_transcript.md) |
-
----
-
-## References
-
-1. Pearl, J. (1988). *Probabilistic Reasoning in Intelligent Systems: Networks of Plausible Inference.*
-2. Brin, S. & Page, L. (1998). *The Anatomy of a Large-Scale Hypertextual Web Search Engine.* WWW.
-3. Auer, P., Cesa-Bianchi, N. & Fischer, P. (2002). *Finite-time Analysis of the Multiarmed Bandit Problem.* Machine Learning, 47, 235–256.
-4. Portelas, R. et al. (2020). *Teacher algorithms for curriculum learning of Deep RL in continuously parameterized environments.* CoRL.
-5. Yu, G. et al. (2021). *MicroRank: End-to-End Latency Issue Localization with Extended Spectrum Analysis in Microservice Environments.* WWW.
+This workspace is currently CPU-only, so actual GRPO training cannot be run here.
 
 ---
 

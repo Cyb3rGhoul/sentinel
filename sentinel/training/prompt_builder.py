@@ -1,14 +1,9 @@
 """Prompt builder for SENTINEL LLM agent.
 
-Converts a raw Gymnasium observation dict into a structured text prompt
-following the RLVR chain-of-thought format:
-
-  [SYSTEM]  — agent role + NexaStack context + action schema
-  [USER]    — current observation (alerts, metrics, blast radius, hypotheses)
-  [THINK]   — <think>...</think> scratchpad (model fills this)
-  [ACTION]  — ```json ... ``` structured action output (model fills this)
-
-This format is designed for Llama-3-Instruct / Qwen2.5-Instruct chat templates.
+Converts a raw Gymnasium observation dict into a compact decision prompt with:
+  [SYSTEM] agent role + allowed action schema
+  [USER] observation snapshot + operating constraints
+  [ASSISTANT PREFILL] opening JSON fence to force structured output
 """
 from __future__ import annotations
 
@@ -24,18 +19,16 @@ _ACTION_SCHEMA = """\
 Output a single JSON action with this exact schema:
 {
   "agent":    "<holmes|forge|argus|hermes|oracle>",
-  "category": "<investigative|remediation|meta>",
-  "name":     "<one of the 16 action names below>",
+  "category": "<investigative|remediation|deployment|meta>",
+  "name":     "<one of the valid action names below>",
   "params":   { ... }
 }
 
 INVESTIGATIVE actions (agent=holmes or argus):
   QueryLogs        params: {service, time_range:[start,end]}
   QueryMetrics     params: {service, metric_name, time_range:[start,end]}
-  QueryTraces      params: {service, time_range:[start,end]}
-  CheckDependencies params: {service}
+  QueryTrace       params: {trace_id}
   FormHypothesis   params: {service, failure_type, confidence:0-1}
-  AnomalyDetect    params: {service, sensitivity:0-1}
 
 REMEDIATION actions (agent=forge):
   RestartService     params: {service}
@@ -43,8 +36,12 @@ REMEDIATION actions (agent=forge):
   RollbackDeployment params: {service, version}
   DrainTraffic       params: {service}
   ModifyRateLimit    params: {service, limit_rps}
-  CanaryDeploy       params: {service, canary_version, traffic_pct}
-  FullDeploy         params: {service, new_version}
+  ModifyConfig       params: {service, key, value}
+
+DEPLOYMENT actions (agent=hermes):
+  CanaryDeploy       params: {service, version, traffic_percent}
+  FullDeploy         params: {service, version}
+  Rollback           params: {service}
 
 META actions (agent=oracle or hermes):
   CloseIncident      params: {resolution_summary}
@@ -77,11 +74,11 @@ NexaStack layers (4 tiers, 30 services):
   Infrastructure: service-mesh, load-balancer, api-gateway, config-service,
                   secret-manager, payment-vault, fraud-detector
 
-Strategy:
-  1. QueryLogs/QueryMetrics on the highest-severity alert service
-  2. CheckDependencies to trace cascades upstream
-  3. QueryTraces to confirm call paths
-  4. FormHypothesis once confidence > 0.7
+Decision policy:
+  1. Investigate the most suspicious affected service first
+  2. Use QueryTrace only after logs/metrics leave ambiguity
+  3. FormHypothesis only when the observation supports a specific service/failure pair
+  4. Stay within the allowed action schema
 """,
 
     "forge": """\
@@ -97,7 +94,8 @@ Remediation priority:
   5. RestartService — ONLY for genuinely unavailable services (availability=False)
   6. CloseIncident — when blast_radius == 0
 
-NEVER RestartService on a healthy (availability=True) service — it incurs a -1.0 penalty.
+NEVER RestartService on a healthy service.
+Prefer blast-radius reduction over aggressive intervention.
 """,
 
     "argus": """\
@@ -107,9 +105,9 @@ Focus on services with error_rate > 0.05 or latency_ms > 300.
 """,
 
     "oracle": """\
-You are ORACLE, the meta-reasoning agent. You decide when to CloseIncident \
-(blast_radius == 0, R3 >= 0.8), EscalateToHuman (HOLMES confidence < 0.4 after \
-8+ steps), or GenerateNewScenario for curriculum learning.
+You are ORACLE, the incident-closure and escalation agent.
+Close only when the blast radius is empty and services look recovered.
+Escalate when the team has low-confidence diagnosis after sustained investigation.
 """,
 }
 
@@ -247,13 +245,23 @@ def _format_observation(obs: dict[str, Any], step_number: int) -> str:
     sla_raw = obs.get("sla_state", "{}")
     sla = _parse_json_field(sla_raw)
     if sla:
+        service_state = sla.get("services", {})
         lines.append("## SLA State")
-        lines.append(f"  Breached: {sla.get('breached', False)} | "
-                     f"MTTR so far: {sla.get('current_mttr', step_number)} steps")
+        lines.append(
+            f"  Breached: {sla.get('breached', False)} | "
+            f"MTTR so far: {sla.get('current_mttr', step_number)} steps | "
+            f"Blast radius: {sla.get('blast_radius', 0)}"
+        )
+        if isinstance(service_state, dict):
+            unhealthy = [svc for svc, healthy in service_state.items() if not healthy]
+            if unhealthy:
+                lines.append(f"  Unhealthy services: {', '.join(unhealthy[:8])}" +
+                             (" ..." if len(unhealthy) > 8 else ""))
         lines.append("")
 
     lines.append(
-        "IMPORTANT: Respond with ONLY a JSON code block — no prose, no explanation.\n"
+        "Return ONLY a JSON code block. Do not explain your reasoning.\n"
+        "Choose one action that is valid for the acting role and grounded in the observation.\n"
         "Example:\n"
         "```json\n"
         "{\"agent\": \"holmes\", \"category\": \"investigative\", "

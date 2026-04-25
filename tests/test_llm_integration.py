@@ -1,20 +1,18 @@
 """Integration smoke-test for the full LLM pipeline path."""
 from sentinel.env import Sentinel_Env
-from sentinel.training.prompt_builder import build_prompt, build_messages
-from sentinel.training.action_parser import parse_llm_action, extract_think
+from sentinel.training.action_parser import extract_think, parse_llm_action
 from sentinel.training.llm_agent import make_grpo_reward_fn
+from sentinel.training.prompt_builder import build_messages, build_prompt
 
 env = Sentinel_Env(config_path="env_spec.yaml")
 obs, _ = env.reset(seed=42)
 
-# ── Test 1: prompt_builder ───────────────────────────────────────────────────
 prompt = build_prompt(obs, agent_role="holmes", step_number=0)
 messages = build_messages(obs, agent_role="forge", step_number=3)
 print(f"[prompt_builder] prompt len={len(prompt)} chars | messages={len(messages)} turns")
 print("  System snippet:", messages[0]["content"][:80].replace("\n", " "))
 print("  User   snippet:", messages[1]["content"][:120].replace("\n", " "))
 
-# ── Test 2: action_parser ────────────────────────────────────────────────────
 test_cases = [
     (
         '<think>postgres is the root cause</think>\n```json\n'
@@ -34,9 +32,9 @@ test_cases = [
         "case_fix",
     ),
     (
-        '{"agent":"forge","category":"investigative","name":"ScaleService",'
-        '"params":{"service":"api-gateway","replicas":2}}',
-        "category_repair",
+        '{"agent":"hermes","category":"meta","name":"CanaryDeploy",'
+        '"params":{"service":"cart-service","version":"v2","traffic_percent":0.1}}',
+        "deployment_repair",
     ),
 ]
 
@@ -50,13 +48,11 @@ for raw, label in test_cases:
         f"  [{label:16s}] agent={action['agent']:6s} | "
         f"{action['name']:25s} | think={think_repr}"
     )
-    # Validate required keys
     for key in ("agent", "category", "name", "params"):
         if key not in action:
             print(f"    ERROR: missing key '{key}'")
             all_ok = False
 
-# ── Test 3: GRPO reward function ─────────────────────────────────────────────
 print("\n[grpo_reward_fn] Testing reward computation:")
 rf = make_grpo_reward_fn(env)
 obs2, _ = env.reset(seed=7)
@@ -75,12 +71,45 @@ rewards = rf(
     obs=obs2,
 )
 print(f"  rewards = {[round(r, 3) for r in rewards]}")
-assert len(rewards) == 3, "Expected 3 rewards"
-assert all(isinstance(r, float) for r in rewards), "All rewards should be float"
+assert len(rewards) == 3
+assert all(isinstance(r, float) for r in rewards)
 
-# ── Test 4: sim-mode training (2 episodes) ───────────────────────────────────
-print("\n[training_loop] 2-episode simulation run:")
+print("\n[training_loop] 2-episode LLM-stub run:")
 from sentinel.training.pipeline import TrainingConfig, run_training_loop
+
+
+class StubLLMAgent:
+    agent_role = "holmes"
+
+    def reset(self):
+        return None
+
+    def act(self, obs, step=0):
+        if step < 2:
+            return {
+                "agent": "holmes",
+                "category": "investigative",
+                "name": "QueryMetrics",
+                "params": {"service": "cart-service", "metric_name": "error_rate", "time_range": [0, 300]},
+                "_llm_completion": '{"agent":"holmes","category":"investigative","name":"QueryMetrics","params":{"service":"cart-service","metric_name":"error_rate","time_range":[0,300]}}',
+            }
+        if step == 2:
+            return {
+                "agent": "holmes",
+                "category": "investigative",
+                "name": "FormHypothesis",
+                "params": {"service": "cart-service", "failure_type": "memory_leak", "confidence": 0.8},
+                "_llm_completion": '{"agent":"holmes","category":"investigative","name":"FormHypothesis","params":{"service":"cart-service","failure_type":"memory_leak","confidence":0.8}}',
+            }
+        return {
+            "agent": "oracle",
+            "category": "meta",
+            "name": "CloseIncident",
+            "params": {"resolution_summary": "Stub closure"},
+            "_llm_completion": '{"agent":"oracle","category":"meta","name":"CloseIncident","params":{"resolution_summary":"Stub closure"}}',
+        }
+
+
 cfg = TrainingConfig(
     agent="holmes",
     max_steps=2,
@@ -93,7 +122,7 @@ metrics_list = run_training_loop(
     env=env,
     config=cfg,
     reward_fn=env.reward_function,
-    llm_agent=None,
+    llm_agent=StubLLMAgent(),
 )
 assert len(metrics_list) == 2
 for m in metrics_list:

@@ -70,6 +70,7 @@ class Observability_Layer:
         world_state: NexaStackWorldState,
         incident_state: IncidentState | None,
         hypothesis_tree: HypothesisTree | None,
+        step_count: int = 0,
     ) -> dict:
         """Build a full Observation dict from the current world state.
 
@@ -84,8 +85,8 @@ class Observability_Layer:
             "active_alerts": self._build_active_alerts(world_state, incident_state),
             "recent_logs": self._build_recent_logs(world_state),
             "active_traces": self._build_active_traces(world_state),
-            "incident_context": self._build_incident_context(incident_state),
-            "sla_state": self._build_sla_state(world_state),
+            "incident_context": self._build_incident_context(incident_state, step_count),
+            "sla_state": self._build_sla_state(world_state, incident_state, step_count),
         }
 
     # ------------------------------------------------------------------
@@ -244,6 +245,7 @@ class Observability_Layer:
 
     def _build_incident_context(
         self, incident_state: IncidentState | None
+        , step_count: int
     ) -> dict:
         """Build incident context dict from incident_state, or empty context."""
         if incident_state is None:
@@ -253,6 +255,8 @@ class Observability_Layer:
                 active_hypotheses=[],
                 attempted_remediations=[],
                 current_blast_radius=[],
+                step_count=step_count,
+                resolved=False,
             ).model_dump()
 
         return IncidentContext(
@@ -278,15 +282,27 @@ class Observability_Layer:
                 a.model_dump() for a in incident_state.attempted_remediations
             ],
             current_blast_radius=list(incident_state.current_blast_radius),
+            step_count=step_count,
+            resolved=incident_state.resolved,
         ).model_dump()
 
     def _build_sla_state(
-        self, world_state: NexaStackWorldState
-    ) -> dict[str, bool]:
-        """Return SLA compliance per service: True if available, False otherwise."""
-        return {
+        self,
+        world_state: NexaStackWorldState,
+        incident_state: IncidentState | None,
+        step_count: int,
+    ) -> dict:
+        """Return SLA summary plus per-service compliance."""
+        per_service = {
             svc: metrics.availability
             for svc, metrics in world_state.services.items()
+        }
+        breached = not all(per_service.values())
+        return {
+            "breached": breached,
+            "current_mttr": step_count,
+            "blast_radius": len(incident_state.current_blast_radius) if incident_state else 0,
+            "services": per_service,
         }
 
     # ------------------------------------------------------------------

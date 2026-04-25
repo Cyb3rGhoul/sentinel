@@ -257,6 +257,15 @@ class Sentinel_Env(gymnasium.Env):
             obs = self._build_obs()
             return obs, -0.1, False, False, {"error": "unknown_service"}
 
+        previous_blast_radius = set(
+            self._incident_state.current_blast_radius
+        ) if self._incident_state is not None else set()
+        service_param = parsed_action.params.get("service")
+        target_was_healthy = bool(
+            service_param in self.world_state.services
+            and self.world_state.services[service_param].availability
+        ) if service_param else False
+
         # 4. Apply action effects to world state
         self._apply_action(parsed_action)
 
@@ -269,10 +278,17 @@ class Sentinel_Env(gymnasium.Env):
             action=parsed_action,
             world_state=self.world_state,
             incident_state=incident_state,
+            previous_blast_radius=previous_blast_radius,
+            current_blast_radius=(
+                set(incident_state.current_blast_radius)
+                if incident_state is not None else set()
+            ),
+            target_was_healthy=target_was_healthy,
         )
 
         # 6. Increment step count
         self.step_count += 1
+        self.world_state.step = self.step_count
 
         # 6b. Dynamic cascade: unresolved failures spread every 5 steps
         if self.step_count % 5 == 0 and incident_state is not None:
@@ -295,7 +311,15 @@ class Sentinel_Env(gymnasium.Env):
         info: dict[str, Any] = {
             "step_count": self.step_count,
             "episode_id": self._episode_id,
+            "current_blast_radius": (
+                sorted(incident_state.current_blast_radius)
+                if incident_state is not None else []
+            ),
         }
+        if incident_state is not None:
+            identified_root_cause, identified_failure_type = self._get_best_identification()
+            info["identified_root_cause"] = identified_root_cause
+            info["identified_failure_type"] = identified_failure_type
         if terminated:
             info["terminated_reason"] = (
                 "CloseIncident" if parsed_action.name == "CloseIncident" else "max_steps"
@@ -352,6 +376,7 @@ class Sentinel_Env(gymnasium.Env):
             world_state=self.world_state,
             incident_state=self._incident_state,
             hypothesis_tree=None,
+            step_count=self.step_count,
         )
 
         # Flatten causal_graph_snapshot (list[list[float]]) to 1-D np.float32 array
@@ -746,3 +771,16 @@ class Sentinel_Env(gymnasium.Env):
             self.world_state.apply_degradation(service, severity)
             self._cascade_engine._affected_services[service] = severity
             incident_state.current_blast_radius.add(service)
+
+    def _get_best_identification(self) -> tuple[str, str]:
+        """Return the strongest current diagnosis for reward bookkeeping."""
+        incident_state = self._incident_state
+        if incident_state is None:
+            return "", ""
+        if incident_state.active_hypotheses:
+            best = max(
+                incident_state.active_hypotheses,
+                key=lambda hypothesis: hypothesis.confidence,
+            )
+            return best.service, best.failure_type.value
+        return "", ""

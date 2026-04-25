@@ -31,17 +31,20 @@ _VALID_AGENTS: frozenset[str] = frozenset(
 )
 
 _VALID_CATEGORIES: frozenset[str] = frozenset(
-    ["investigative", "remediation", "meta"]
+    ["investigative", "remediation", "deployment", "meta"]
 )
 
 _INVESTIGATIVE_ACTIONS: frozenset[str] = frozenset([
-    "QueryLogs", "QueryMetrics", "QueryTraces", "CheckDependencies",
-    "FormHypothesis", "AnomalyDetect",
+    "QueryLogs", "QueryMetrics", "QueryTrace", "FormHypothesis",
 ])
 
 _REMEDIATION_ACTIONS: frozenset[str] = frozenset([
     "RestartService", "ScaleService", "RollbackDeployment", "DrainTraffic",
-    "ModifyRateLimit", "CanaryDeploy", "FullDeploy",
+    "ModifyRateLimit", "ModifyConfig",
+])
+
+_DEPLOYMENT_ACTIONS: frozenset[str] = frozenset([
+    "CanaryDeploy", "FullDeploy", "Rollback",
 ])
 
 _META_ACTIONS: frozenset[str] = frozenset([
@@ -49,13 +52,14 @@ _META_ACTIONS: frozenset[str] = frozenset([
 ])
 
 _ALL_ACTIONS: frozenset[str] = (
-    _INVESTIGATIVE_ACTIONS | _REMEDIATION_ACTIONS | _META_ACTIONS
+    _INVESTIGATIVE_ACTIONS | _REMEDIATION_ACTIONS | _DEPLOYMENT_ACTIONS | _META_ACTIONS
 )
 
 # category → allowed actions
 _CATEGORY_ACTIONS: dict[str, frozenset[str]] = {
     "investigative": _INVESTIGATIVE_ACTIONS,
     "remediation":   _REMEDIATION_ACTIONS,
+    "deployment":    _DEPLOYMENT_ACTIONS,
     "meta":          _META_ACTIONS,
 }
 
@@ -65,7 +69,7 @@ _AGENT_CATEGORY: dict[str, str] = {
     "argus":  "investigative",
     "forge":  "remediation",
     "oracle": "meta",
-    "hermes": "meta",
+    "hermes": "deployment",
 }
 
 # ---------------------------------------------------------------------------
@@ -324,10 +328,10 @@ def _safe_fallback(agent: str) -> dict:
         }
     if agent in ("oracle", "hermes"):
         return {
-            "agent":    "oracle",
+            "agent":    agent,
             "category": "meta",
             "name":     "EscalateToHuman",
-            "params":   {"reason": "LLM parse failure — escalating for safety"},
+            "params":   {"reason": "LLM parse failure"},
         }
     # Default: HOLMES investigates
     return {

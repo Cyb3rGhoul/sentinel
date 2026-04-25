@@ -1,5 +1,5 @@
 # Core environment
-openenv>=0.2.3
+openenv-core[core]==0.2.3
 gymnasium==1.3.0
 networkx==3.4.2
 numpy==2.2.4
@@ -19,15 +19,15 @@ gradio==6.10.0
 gradio_client==2.4.0
 pandas==2.2.3
 
-# ML / Training (optional — comment out if no GPU)
+# ML / Training base
 torch==2.6.0
 transformers==4.51.1
-# trl and unsloth are intentionally optional due to GPU/platform constraints.
-# Install for full GRPO training runs:
-# pip install trl unsloth
+
+# Full GRPO training extras for CUDA machines:
+# pip install unsloth trl datasets
 
 # Vector DB
-# chromadb>=0.4.0  # install separately: pip install chromadb
+# chromadb>=0.4.0  # install separately if needed
 
 # Testing
 pytest==9.0.2
@@ -36,7 +36,7 @@ hypothesis==6.152.2
 # Utilities
 requests==2.32.3
 
-# LLM APIs — HuggingFace Inference + OpenAI Oracle
+# LLM APIs
 huggingface_hub>=0.22.0
 openai>=1.0.0
 python-dotenv>=1.0.0
