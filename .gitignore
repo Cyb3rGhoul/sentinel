@@ -1,9 +1,6 @@
 # Python
 __pycache__/
 *.py[cod]
-
-# Credentials — NEVER commit
-.env
 *.pyo
 *.pyd
 *.egg-info/
@@ -12,22 +9,22 @@ build/
 *.egg
 .eggs/
 
+# Credentials — NEVER commit
+.env
+
 # Virtual environments
 venv/
 .venv/
 env/
-.env
 
-# Testing
+# Testing cache
 .pytest_cache/
 .hypothesis/
-htmlcov/
-.coverage
-coverage.xml
 
 # Editor / IDE
 .vscode/
 .idea/
+.kiro/
 *.swp
 *.swo
 
@@ -46,4 +43,5 @@ checkpoints/
 training_log.jsonl
 
 # Temp scripts
-generate_transcript.py
+run_simulation.py
+plot_results.py

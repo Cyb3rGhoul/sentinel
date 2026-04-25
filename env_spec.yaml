@@ -23,3 +23,13 @@ observability:
 training:
   max_steps_per_episode: 200
   sla_breach_threshold_steps: 50
+  placeholder_action:
+    agent: holmes
+    category: investigative
+    name: QueryLogs
+    params:
+      service: cart-service
+      time_range: [0, 60]
+
+demo:
+  seed: 42

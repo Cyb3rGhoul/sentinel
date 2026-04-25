@@ -9,6 +9,9 @@ import json
 import time
 from typing import Any
 
+from sentinel.config import load_config
+from sentinel.training.pipeline import get_placeholder_action
+
 try:
     import gradio as gr
     _GRADIO_AVAILABLE = True
@@ -34,19 +37,17 @@ _INCIDENT_IDS = ["E1", "E2", "E3", "M1", "M2", "M3", "M4", "H1", "H2", "H3"]
 
 def _seed_demo_state(env: Any) -> None:
     """Run 5 steps with seed=42 to populate demo state."""
-    env.reset(seed=42)
+    cfg = load_config()
+    seed = cfg.demo.seed
+    action = get_placeholder_action()
+    env.reset(seed=seed)
     for _ in range(5):
-        obs, reward, terminated, truncated, info = env.step({
-            "agent": "holmes",
-            "category": "investigative",
-            "name": "QueryLogs",
-            "params": {"service": "cart-service", "time_range": [0, 60]},
-        })
+        obs, reward, terminated, truncated, info = env.step(action)
         _action_log.append({
             "timestamp": time.time(),
-            "agent": "holmes",
-            "name": "QueryLogs",
-            "params": {"service": "cart-service"},
+            "agent": action.get("agent", "holmes"),
+            "name": action.get("name", "QueryLogs"),
+            "params": action.get("params", {}),
         })
         if terminated:
             break
@@ -58,6 +59,10 @@ def _create_demo_env() -> Any:
         from sentinel.env import Sentinel_Env
         env = Sentinel_Env()
         _seed_demo_state(env)
+        templates = getattr(env.incident_generator, "_templates", [])
+        if templates:
+            global _INCIDENT_IDS
+            _INCIDENT_IDS = [tpl.id for tpl in templates]
         return env
     except Exception as e:
         print(f"Warning: Could not create demo env: {e}")
@@ -177,7 +182,8 @@ def inject_incident(incident_id: str) -> str:
             return f"Incident '{incident_id}' not found in library."
 
         _env.incident_generator._templates = matching
-        _env.reset(seed=42)
+        cfg = load_config()
+        _env.reset(seed=cfg.demo.seed)
         _env.incident_generator._templates = original_templates
 
         blast = _env.world_state.incident_state.current_blast_radius if _env.world_state.incident_state else set()

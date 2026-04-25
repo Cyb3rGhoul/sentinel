@@ -77,6 +77,18 @@ class ObservabilityConfig(BaseModel):
 class TrainingConfig(BaseModel):
     max_steps_per_episode: int = 200
     sla_breach_threshold_steps: int = 50
+    placeholder_action: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "agent": "holmes",
+            "category": "investigative",
+            "name": "QueryLogs",
+            "params": {"service": "cart-service", "time_range": [0, 60]},
+        }
+    )
+
+
+class DemoConfig(BaseModel):
+    seed: int = 42
 
 
 # ---------------------------------------------------------------------------
@@ -89,6 +101,7 @@ class SentinelConfig(BaseModel):
     reward: RewardConfig = Field(default_factory=RewardConfig)
     observability: ObservabilityConfig = Field(default_factory=ObservabilityConfig)
     training: TrainingConfig = Field(default_factory=TrainingConfig)
+    demo: DemoConfig = Field(default_factory=DemoConfig)
 
 
 # ---------------------------------------------------------------------------

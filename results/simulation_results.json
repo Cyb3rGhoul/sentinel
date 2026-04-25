@@ -1,46 +1,228 @@
 {
-  "baseline": {
+  "episodes": [
+    {
+      "episode": 0,
+      "difficulty": "easy",
+      "total_reward": -1.0,
+      "steps": 11
+    },
+    {
+      "episode": 1,
+      "difficulty": "easy",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 2,
+      "difficulty": "easy",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 3,
+      "difficulty": "easy",
+      "total_reward": -1.0,
+      "steps": 13
+    },
+    {
+      "episode": 4,
+      "difficulty": "easy",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 5,
+      "difficulty": "easy",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 6,
+      "difficulty": "easy",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 7,
+      "difficulty": "easy",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 8,
+      "difficulty": "easy",
+      "total_reward": -1.0,
+      "steps": 13
+    },
+    {
+      "episode": 9,
+      "difficulty": "easy",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 10,
+      "difficulty": "medium",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 11,
+      "difficulty": "medium",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 12,
+      "difficulty": "medium",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 13,
+      "difficulty": "medium",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 14,
+      "difficulty": "medium",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 15,
+      "difficulty": "medium",
+      "total_reward": -1.0,
+      "steps": 13
+    },
+    {
+      "episode": 16,
+      "difficulty": "medium",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 17,
+      "difficulty": "medium",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 18,
+      "difficulty": "medium",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 19,
+      "difficulty": "medium",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 20,
+      "difficulty": "hard",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 21,
+      "difficulty": "hard",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 22,
+      "difficulty": "hard",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 23,
+      "difficulty": "hard",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 24,
+      "difficulty": "hard",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 25,
+      "difficulty": "hard",
+      "total_reward": -1.0,
+      "steps": 13
+    },
+    {
+      "episode": 26,
+      "difficulty": "hard",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 27,
+      "difficulty": "hard",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 28,
+      "difficulty": "hard",
+      "total_reward": 0.0,
+      "steps": 12
+    },
+    {
+      "episode": 29,
+      "difficulty": "hard",
+      "total_reward": 0.0,
+      "steps": 12
+    }
+  ],
+  "summary": {
     "easy": {
-      "r1_mean": 0.0,
-      "r1_std": 0.0,
-      "r2_mean": 0.2,
-      "r2_std": 0.0,
-      "r3_mean": 0.7167,
-      "r3_std": 0.0176,
-      "r4_mean": 0.0,
-      "r4_std": 0.0,
-      "total_reward_mean": -0.2608,
-      "total_reward_std": 0.0044,
-      "mttr_mean": 200.0,
-      "mttr_std": 0.0
+      "mean": -0.3,
+      "min": -1.0,
+      "max": 0.0
     },
     "medium": {
-      "r1_mean": 0.0,
-      "r1_std": 0.0,
-      "r2_mean": 0.2,
-      "r2_std": 0.0,
-      "r3_mean": 0.8,
-      "r3_std": 0.0,
-      "r4_mean": 0.0,
-      "r4_std": 0.0,
-      "total_reward_mean": -0.24,
-      "total_reward_std": 0.0,
-      "mttr_mean": 200.0,
-      "mttr_std": 0.0
+      "mean": -0.1,
+      "min": -1.0,
+      "max": 0.0
     },
     "hard": {
-      "r1_mean": 0.0,
-      "r1_std": 0.0,
-      "r2_mean": 0.2,
-      "r2_std": 0.0,
-      "r3_mean": 0.81,
-      "r3_std": 0.0994,
-      "r4_mean": 0.0,
-      "r4_std": 0.0,
-      "total_reward_mean": -0.2375,
-      "total_reward_std": 0.0249,
-      "mttr_mean": 200.0,
-      "mttr_std": 0.0
+      "mean": -0.1,
+      "min": -1.0,
+      "max": 0.0
     }
-  }
+  },
+  "ucb1_top_arms": [
+    {
+      "arm": "holmes/QueryLogs",
+      "pulls": 30,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "holmes/QueryMetrics",
+      "pulls": 30,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "holmes/QueryTrace",
+      "pulls": 30,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "holmes/FormHypothesis",
+      "pulls": 30,
+      "mean_reward": 0.0
+    },
+    {
+      "arm": "argus/QueryMetrics",
+      "pulls": 30,
+      "mean_reward": 0.0
+    }
+  ]
 }

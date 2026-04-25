@@ -10,7 +10,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from sentinel.training.pipeline import _PLACEHOLDER_ACTION
+from sentinel.training.pipeline import get_placeholder_action
 
 
 @dataclass
@@ -51,7 +51,7 @@ def _run_single_eval_episode(
     step_count = 0
 
     while not (terminated or truncated):
-        action_dict = dict(_PLACEHOLDER_ACTION)
+        action_dict = dict(get_placeholder_action())
         obs_next, reward, terminated, truncated, step_info = env.step(action_dict)
 
         try:
