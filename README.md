@@ -100,6 +100,8 @@ Five specialized agent roles mirror real incident response teams:
 
 Each role is **constrained** — Holmes cannot restart services, Forge cannot query logs. This forces specialized reasoning.
 
+![SENTINEL Architecture](assets/architecture.png)
+
 ![Agent Actions](assets/agent_action.jpg)
 
 ---

@@ -106,6 +106,9 @@ Real incident response is not one person doing everything. It is a team with spe
 
 Each role is **constrained** — Holmes cannot restart services, Forge cannot query logs. This forces the model to develop specialized competencies rather than learning a single monolithic policy. It also mirrors how real organizations structure their incident response teams.
 
+![SENTINEL Architecture](assets/architecture.png)
+*A clean system view of SENTINEL: interface layer, core environment runtime, role-constrained agents, and the separate training loop used to optimize policies.*
+
 ![Agent actions and step results in the dashboard](assets/agent_action.jpg)
 *The autonomous demo cycling through agent actions. The action log (right) shows the full sequence: Holmes queries logs, then Forge systematically restarts affected services. The step result (left) shows the structured JSON response with reward feedback after each action.*
 
