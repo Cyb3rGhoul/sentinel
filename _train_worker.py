@@ -81,6 +81,8 @@ def main():
         lora_alpha=32,
         checkpoint_dir=str(ckpt_dir),
         log_file=str(log_file),
+        experiment_tracking=True,
+        tb_log_dir=str(RESULTS_DIR / "runs"),
     )
 
     t0 = time.perf_counter()

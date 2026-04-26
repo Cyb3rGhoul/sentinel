@@ -1,0 +1,171 @@
+12:14:59 | INFO     | sentinel.worker | ============================================================
+12:14:59 | INFO     | sentinel.worker |   Training: agent=hermes | episodes=100 | tag=full
+12:14:59 | INFO     | sentinel.worker | ============================================================
+🦥 Unsloth: Will patch your computer to enable 2x faster free finetuning.
+Unsloth: Your Flash Attention 2 installation seems to be broken. Using Xformers instead. No performance changes will be seen.
+🦥 Unsloth Zoo will now patch everything to make training faster!
+12:15:06 | INFO     | sentinel.training.pipeline | Loading unsloth/Qwen2.5-7B-Instruct-bnb-4bit in 4-bit ...
+12:15:06 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/whoami-v2 "HTTP/1.1 200 OK"
+12:15:06 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:15:06 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+12:15:07 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+12:15:07 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/whoami-v2 "HTTP/1.1 200 OK"
+==((====))==  Unsloth 2026.4.8: Fast Qwen2 patching. Transformers: 5.5.0.
+   \\   /|    NVIDIA L40S. Num GPUs = 1. Max memory: 44.394 GB. Platform: Linux.
+O^O/ \_/ \    Torch: 2.10.0+cu128. CUDA: 8.9. CUDA Toolkit: 12.8. Triton: 3.6.0
+\        /    Bfloat16 = TRUE. FA [Xformers = 0.0.35. FA2 = False]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+12:15:10 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:15:10 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+12:15:10 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:15:10 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+12:15:11 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:15:11 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<00:46,  7.26it/s]Loading weights:   1%|          | 2/339 [00:00<00:49,  6.83it/s]Loading weights:  16%|█▌        | 53/339 [00:00<00:01, 187.53it/s]Loading weights:  32%|███▏      | 110/339 [00:00<00:00, 308.73it/s]Loading weights:  51%|█████     | 172/339 [00:00<00:00, 408.03it/s]Loading weights:  68%|██████▊   | 230/339 [00:00<00:00, 457.06it/s]Loading weights:  83%|████████▎ | 282/339 [00:00<00:00, 475.49it/s]Loading weights: 100%|██████████| 339/339 [00:00<00:00, 377.95it/s]
+12:15:12 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/generation_config.json "HTTP/1.1 307 Temporary Redirect"
+12:15:12 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/generation_config.json "HTTP/1.1 200 OK"
+12:15:13 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:15:13 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+12:15:13 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+12:15:13 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/tokenizer_config.json "HTTP/1.1 200 OK"
+12:15:13 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+12:15:13 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+12:15:14 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit "HTTP/1.1 200 OK"
+12:15:15 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:15:15 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+12:15:15 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+12:15:15 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/tokenizer_config.json "HTTP/1.1 200 OK"
+12:15:15 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+12:15:15 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+12:15:16 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit "HTTP/1.1 200 OK"
+unsloth/Qwen2.5-7B-Instruct-bnb-4bit does not have a padding token! Will use pad_token = <|PAD_TOKEN|>.
+12:15:17 | INFO     | sentinel.training.pipeline | Applying LoRA (r=16, alpha=32) ...
+12:15:20 | INFO     | sentinel.training.pipeline | Optimizer: AdamW over 392 trainable params
+12:15:20 | INFO     | sentinel.training.pipeline | build_grpo_trainer: ready (model=unsloth/Qwen2.5-7B-Instruct-bnb-4bit, device=cuda)
+12:15:20 | INFO     | sentinel.training.pipeline | Starting training loop: episodes=100, mode=LLM, start=0
+12:15:20 | INFO     | sentinel.training.pipeline | TensorBoard experiment tracking ON → /home/harsh/project/theory/sentinel/results/runs/hermes_1777185920
+12:15:26 | INFO     | sentinel.training.pipeline | Episode    0 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:15:32 | INFO     | sentinel.training.pipeline | Episode    1 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:15:38 | INFO     | sentinel.training.pipeline | Episode    2 | R1=0.00 R2=0.49 R3=1.00 R4=1.00 | Total=0.497 | MTTR=7 | loss=n/a
+12:15:44 | INFO     | sentinel.training.pipeline | Episode    3 | R1=0.00 R2=0.49 R3=1.00 R4=1.00 | Total=0.497 | MTTR=7 | loss=n/a
+12:15:50 | INFO     | sentinel.training.pipeline | Episode    4 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+Unsloth: Will smartly offload gradients to save VRAM!
+12:15:51 | INFO     | sentinel.training.pipeline | Episode    5 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0141
+12:15:59 | INFO     | sentinel.training.pipeline | Episode    6 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:16:07 | INFO     | sentinel.training.pipeline | Episode    7 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:16:17 | INFO     | sentinel.training.pipeline | Episode    8 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.490 | MTTR=10 | loss=n/a
+12:16:23 | INFO     | sentinel.training.pipeline | Episode    9 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:16:28 | INFO     | sentinel.training.pipeline | Episode   10 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:16:34 | INFO     | sentinel.training.pipeline | Episode   11 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:16:42 | INFO     | sentinel.training.pipeline | Episode   12 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:16:48 | INFO     | sentinel.training.pipeline | Episode   13 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:16:53 | INFO     | sentinel.training.pipeline | Episode   14 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:17:02 | INFO     | sentinel.training.pipeline | Episode   15 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:17:09 | INFO     | sentinel.training.pipeline | Episode   16 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:17:15 | INFO     | sentinel.training.pipeline | Episode   17 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:17:16 | INFO     | sentinel.training.pipeline | Episode   18 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0156
+12:17:25 | INFO     | sentinel.training.pipeline | Episode   19 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:17:30 | INFO     | sentinel.training.pipeline | Episode   20 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:17:37 | INFO     | sentinel.training.pipeline | Episode   21 | R1=0.00 R2=0.49 R3=1.00 R4=1.00 | Total=0.497 | MTTR=7 | loss=n/a
+12:17:43 | INFO     | sentinel.training.pipeline | Episode   22 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:17:51 | INFO     | sentinel.training.pipeline | Episode   23 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:18:01 | INFO     | sentinel.training.pipeline | Episode   24 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:18:07 | INFO     | sentinel.training.pipeline | Episode   25 | R1=0.00 R2=0.49 R3=1.00 R4=1.00 | Total=0.497 | MTTR=7 | loss=n/a
+12:18:14 | INFO     | sentinel.training.pipeline | Episode   26 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:18:22 | INFO     | sentinel.training.pipeline | Episode   27 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:18:29 | INFO     | sentinel.training.pipeline | Episode   28 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:18:32 | INFO     | sentinel.training.pipeline | Episode   29 | R1=0.00 R2=0.51 R3=1.00 R4=1.00 | Total=0.504 | MTTR=4 | loss=n/a
+12:18:40 | INFO     | sentinel.training.pipeline | Episode   30 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:18:44 | INFO     | sentinel.training.pipeline | Episode   31 | R1=0.00 R2=0.51 R3=1.00 R4=1.00 | Total=0.504 | MTTR=4 | loss=n/a
+12:18:52 | INFO     | sentinel.training.pipeline | Episode   32 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:18:57 | INFO     | sentinel.training.pipeline | Episode   33 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:19:01 | INFO     | sentinel.training.pipeline | Episode   34 | R1=0.00 R2=0.51 R3=1.00 R4=1.00 | Total=0.504 | MTTR=4 | loss=n/a
+12:19:08 | INFO     | sentinel.training.pipeline | Episode   35 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:19:14 | INFO     | sentinel.training.pipeline | Episode   36 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:19:23 | INFO     | sentinel.training.pipeline | Episode   37 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:19:29 | INFO     | sentinel.training.pipeline | Episode   38 | R1=0.00 R2=0.49 R3=1.00 R4=1.00 | Total=0.497 | MTTR=7 | loss=n/a
+12:19:37 | INFO     | sentinel.training.pipeline | Episode   39 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:19:44 | INFO     | sentinel.training.pipeline | Episode   40 | R1=0.00 R2=0.49 R3=1.00 R4=1.00 | Total=0.497 | MTTR=7 | loss=n/a
+12:19:50 | INFO     | sentinel.training.pipeline | Episode   41 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:19:57 | INFO     | sentinel.training.pipeline | Episode   42 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:20:01 | INFO     | sentinel.training.pipeline | Episode   43 | R1=0.00 R2=0.51 R3=1.00 R4=1.00 | Total=0.504 | MTTR=4 | loss=n/a
+12:20:02 | INFO     | sentinel.training.pipeline | Episode   44 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0149
+12:20:11 | INFO     | sentinel.training.pipeline | Episode   45 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:20:17 | INFO     | sentinel.training.pipeline | Episode   46 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:20:20 | INFO     | sentinel.training.pipeline | Episode   47 | R1=0.00 R2=0.51 R3=1.00 R4=1.00 | Total=0.504 | MTTR=4 | loss=n/a
+12:20:27 | INFO     | sentinel.training.pipeline | Episode   48 | R1=0.00 R2=0.49 R3=1.00 R4=1.00 | Total=0.497 | MTTR=7 | loss=n/a
+12:20:32 | INFO     | sentinel.training.pipeline | Episode   49 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:20:33 | INFO     | sentinel.training.pipeline | Episode   50 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0141
+12:20:39 | INFO     | sentinel.training.pipeline | Episode   51 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:20:46 | INFO     | sentinel.training.pipeline | Episode   52 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:20:52 | INFO     | sentinel.training.pipeline | Episode   53 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:21:00 | INFO     | sentinel.training.pipeline | Episode   54 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:21:05 | INFO     | sentinel.training.pipeline | Episode   55 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:21:12 | INFO     | sentinel.training.pipeline | Episode   56 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:21:17 | INFO     | sentinel.training.pipeline | Episode   57 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:21:25 | INFO     | sentinel.training.pipeline | Episode   58 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:21:30 | INFO     | sentinel.training.pipeline | Episode   59 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:21:36 | INFO     | sentinel.training.pipeline | Episode   60 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:21:43 | INFO     | sentinel.training.pipeline | Episode   61 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:21:44 | INFO     | sentinel.training.pipeline | Episode   62 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0150
+12:21:50 | INFO     | sentinel.training.pipeline | Episode   63 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:21:57 | INFO     | sentinel.training.pipeline | Episode   64 | R1=0.00 R2=0.49 R3=1.00 R4=1.00 | Total=0.497 | MTTR=7 | loss=n/a
+12:21:58 | INFO     | sentinel.training.pipeline | Episode   65 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0138
+12:22:07 | INFO     | sentinel.training.pipeline | Episode   66 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:22:13 | INFO     | sentinel.training.pipeline | Episode   67 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:22:19 | INFO     | sentinel.training.pipeline | Episode   68 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:22:26 | INFO     | sentinel.training.pipeline | Episode   69 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:22:32 | INFO     | sentinel.training.pipeline | Episode   70 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:22:41 | INFO     | sentinel.training.pipeline | Episode   71 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:22:49 | INFO     | sentinel.training.pipeline | Episode   72 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:22:58 | INFO     | sentinel.training.pipeline | Episode   73 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:23:06 | INFO     | sentinel.training.pipeline | Episode   74 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:23:10 | INFO     | sentinel.training.pipeline | Episode   75 | R1=0.00 R2=0.51 R3=1.00 R4=1.00 | Total=0.504 | MTTR=4 | loss=n/a
+12:23:11 | INFO     | sentinel.training.pipeline | Episode   76 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0150
+12:23:14 | INFO     | sentinel.training.pipeline | Episode   77 | R1=0.00 R2=0.51 R3=1.00 R4=1.00 | Total=0.504 | MTTR=4 | loss=n/a
+12:23:15 | INFO     | sentinel.training.pipeline | Episode   78 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0124
+12:23:18 | INFO     | sentinel.training.pipeline | Episode   79 | R1=0.00 R2=0.51 R3=1.00 R4=1.00 | Total=0.504 | MTTR=4 | loss=n/a
+12:23:24 | INFO     | sentinel.training.pipeline | Episode   80 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:23:33 | INFO     | sentinel.training.pipeline | Episode   81 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:23:40 | INFO     | sentinel.training.pipeline | Episode   82 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:23:47 | INFO     | sentinel.training.pipeline | Episode   83 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:23:57 | INFO     | sentinel.training.pipeline | Episode   84 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.490 | MTTR=10 | loss=n/a
+12:23:58 | INFO     | sentinel.training.pipeline | Episode   85 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0137
+12:23:59 | INFO     | sentinel.training.pipeline | Episode   86 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0122
+12:24:07 | INFO     | sentinel.training.pipeline | Episode   87 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:24:14 | INFO     | sentinel.training.pipeline | Episode   88 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:24:20 | INFO     | sentinel.training.pipeline | Episode   89 | R1=0.00 R2=0.50 R3=1.00 R4=1.00 | Total=0.499 | MTTR=6 | loss=n/a
+12:24:28 | INFO     | sentinel.training.pipeline | Episode   90 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:24:38 | INFO     | sentinel.training.pipeline | Episode   91 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.490 | MTTR=10 | loss=n/a
+12:24:41 | INFO     | sentinel.training.pipeline | Episode   92 | R1=0.00 R2=0.51 R3=1.00 R4=1.00 | Total=0.504 | MTTR=4 | loss=n/a
+12:24:49 | INFO     | sentinel.training.pipeline | Episode   93 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:24:58 | INFO     | sentinel.training.pipeline | Episode   94 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.490 | MTTR=10 | loss=n/a
+12:25:06 | INFO     | sentinel.training.pipeline | Episode   95 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:25:10 | INFO     | sentinel.training.pipeline | Episode   96 | R1=0.00 R2=0.51 R3=1.00 R4=1.00 | Total=0.504 | MTTR=4 | loss=n/a
+12:25:17 | INFO     | sentinel.training.pipeline | Episode   97 | R1=0.00 R2=0.48 R3=1.00 R4=1.00 | Total=0.494 | MTTR=8 | loss=n/a
+12:25:25 | INFO     | sentinel.training.pipeline | Episode   98 | R1=0.00 R2=0.47 R3=1.00 R4=1.00 | Total=0.492 | MTTR=9 | loss=n/a
+12:25:26 | INFO     | sentinel.training.pipeline | Episode   99 | R1=0.00 R2=0.54 R3=1.00 R4=1.00 | Total=0.512 | MTTR=1 | loss=0.0159
+12:25:26 | INFO     | sentinel.training.pipeline | TensorBoard experiment tracking — run complete, writer closed.
+12:25:26 | INFO     | sentinel.worker | Training done: {
+  "agent": "hermes",
+  "tag": "full",
+  "episodes": 100,
+  "elapsed_s": 620.8,
+  "sec_per_ep": 6.2,
+  "avg_reward_last10": 0.4965,
+  "avg_r1_last10": 0.0,
+  "avg_mttr_last10": 7.2,
+  "best_reward": 0.5121,
+  "best_r1": 0.0
+}
+12:25:26 | INFO     | sentinel.worker | Summary saved (pre-eval): /home/harsh/project/theory/sentinel/results/hermes_full_summary.json
+12:25:26 | INFO     | sentinel.worker | Running post-training evaluation (3 eps/tier) ...
+=== SENTINEL Evaluation Report ===
+Difficulty | R1           | R2           | R3           | R4           | Total        | MTTR        
+----------------------------------------------------------------------------------------------------
+easy       | 0.00 ± 0.00  | 0.47 ± 0.00  | 1.00 ± 0.00  | 1.00 ± 0.00  | 0.49 ± 0.00  | 9.0 ± 0.0
+medium     | 0.00 ± 0.00  | 0.50 ± 0.00  | 1.00 ± 0.00  | 1.00 ± 0.00  | 0.50 ± 0.00  | 6.0 ± 0.0
+hard       | 0.00 ± 0.00  | 0.52 ± 0.04  | 1.00 ± 0.00  | 1.00 ± 0.00  | 0.51 ± 0.01  | 3.7 ± 4.6
+12:26:19 | INFO     | sentinel.worker | Summary saved: /home/harsh/project/theory/sentinel/results/hermes_full_summary.json
+__SUMMARY__{"agent": "hermes", "tag": "full", "episodes": 100, "elapsed_s": 620.8, "sec_per_ep": 6.2, "avg_reward_last10": 0.4965, "avg_r1_last10": 0.0, "avg_mttr_last10": 7.2, "best_reward": 0.5121, "best_r1": 0.0, "eval": {"easy": {"r1_mean": 0.0, "total_mean": 0.4921, "mttr_mean": 9.0}, "medium": {"r1_mean": 0.0, "total_mean": 0.4989, "mttr_mean": 6.0}, "hard": {"r1_mean": 0.0, "total_mean": 0.5054, "mttr_mean": 3.7}}}__END__

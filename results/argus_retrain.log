@@ -1,0 +1,182 @@
+12:02:02 | INFO     | sentinel.worker | ============================================================
+12:02:02 | INFO     | sentinel.worker |   Training: agent=argus | episodes=100 | tag=full
+12:02:02 | INFO     | sentinel.worker | ============================================================
+🦥 Unsloth: Will patch your computer to enable 2x faster free finetuning.
+Unsloth: Your Flash Attention 2 installation seems to be broken. Using Xformers instead. No performance changes will be seen.
+🦥 Unsloth Zoo will now patch everything to make training faster!
+12:02:09 | INFO     | sentinel.training.pipeline | Loading unsloth/Qwen2.5-7B-Instruct-bnb-4bit in 4-bit ...
+12:02:09 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/whoami-v2 "HTTP/1.1 200 OK"
+12:02:09 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:02:09 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+12:02:10 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+12:02:10 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/whoami-v2 "HTTP/1.1 200 OK"
+==((====))==  Unsloth 2026.4.8: Fast Qwen2 patching. Transformers: 5.5.0.
+   \\   /|    NVIDIA L40S. Num GPUs = 1. Max memory: 44.394 GB. Platform: Linux.
+O^O/ \_/ \    Torch: 2.10.0+cu128. CUDA: 8.9. CUDA Toolkit: 12.8. Triton: 3.6.0
+\        /    Bfloat16 = TRUE. FA [Xformers = 0.0.35. FA2 = False]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+12:02:13 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:02:13 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+12:02:14 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:02:14 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+12:02:14 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:02:14 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<00:47,  7.10it/s]Loading weights:   1%|          | 2/339 [00:00<00:51,  6.50it/s]Loading weights:  14%|█▍        | 48/339 [00:00<00:01, 166.12it/s]Loading weights:  32%|███▏      | 110/339 [00:00<00:00, 316.19it/s]Loading weights:  47%|████▋     | 161/339 [00:00<00:00, 378.46it/s]Loading weights:  64%|██████▎   | 216/339 [00:00<00:00, 428.36it/s]Loading weights:  82%|████████▏ | 278/339 [00:00<00:00, 472.17it/s]Loading weights: 100%|██████████| 339/339 [00:00<00:00, 368.70it/s]
+12:02:16 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/generation_config.json "HTTP/1.1 307 Temporary Redirect"
+12:02:16 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/generation_config.json "HTTP/1.1 200 OK"
+12:02:16 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:02:16 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+12:02:16 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+12:02:16 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/tokenizer_config.json "HTTP/1.1 200 OK"
+12:02:17 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+12:02:17 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+12:02:18 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit "HTTP/1.1 200 OK"
+12:02:18 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:02:18 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/config.json "HTTP/1.1 200 OK"
+12:02:18 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+12:02:18 | INFO     | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/bdd404162d94997f390efbfa660eb3f21cbbc81d/tokenizer_config.json "HTTP/1.1 200 OK"
+12:02:19 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+12:02:19 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+12:02:20 | INFO     | httpx | HTTP Request: GET https://huggingface.co/api/models/unsloth/Qwen2.5-7B-Instruct-bnb-4bit "HTTP/1.1 200 OK"
+unsloth/Qwen2.5-7B-Instruct-bnb-4bit does not have a padding token! Will use pad_token = <|PAD_TOKEN|>.
+12:02:20 | INFO     | sentinel.training.pipeline | Applying LoRA (r=16, alpha=32) ...
+12:02:23 | INFO     | sentinel.training.pipeline | Optimizer: AdamW over 392 trainable params
+12:02:23 | INFO     | sentinel.training.pipeline | build_grpo_trainer: ready (model=unsloth/Qwen2.5-7B-Instruct-bnb-4bit, device=cuda)
+12:02:23 | INFO     | sentinel.training.pipeline | Starting training loop: episodes=100, mode=LLM, start=0
+12:02:23 | INFO     | sentinel.training.pipeline | TensorBoard experiment tracking ON → /home/harsh/project/theory/sentinel/results/runs/argus_1777185143
+12:02:29 | INFO     | sentinel.training.pipeline | Episode    0 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=n/a
+Unsloth: Will smartly offload gradients to save VRAM!
+12:02:36 | INFO     | sentinel.training.pipeline | Episode    1 | R1=0.50 R2=1.03 R3=0.87 R4=0.00 | Total=0.699 | MTTR=4 | loss=0.0126
+12:02:43 | INFO     | sentinel.training.pipeline | Episode    2 | R1=0.50 R2=1.01 R3=0.80 R4=0.00 | Total=0.678 | MTTR=5 | loss=n/a
+12:02:50 | INFO     | sentinel.training.pipeline | Episode    3 | R1=0.50 R2=1.01 R3=0.80 R4=0.00 | Total=0.678 | MTTR=5 | loss=n/a
+12:02:56 | INFO     | sentinel.training.pipeline | Episode    4 | R1=1.00 R2=1.03 R3=0.73 R4=0.00 | Total=0.841 | MTTR=4 | loss=0.1070
+12:03:03 | INFO     | sentinel.training.pipeline | Episode    5 | R1=0.50 R2=1.01 R3=0.80 R4=0.00 | Total=0.678 | MTTR=5 | loss=-0.0138
+12:03:10 | INFO     | sentinel.training.pipeline | Episode    6 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=-0.0092
+12:03:17 | INFO     | sentinel.training.pipeline | Episode    7 | R1=0.50 R2=1.01 R3=0.87 R4=0.00 | Total=0.694 | MTTR=5 | loss=n/a
+12:03:23 | INFO     | sentinel.training.pipeline | Episode    8 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=-0.0081
+12:03:28 | INFO     | sentinel.training.pipeline | Episode    9 | R1=0.50 R2=1.03 R3=0.87 R4=0.00 | Total=0.699 | MTTR=4 | loss=n/a
+12:03:33 | INFO     | sentinel.training.pipeline | Episode   10 | R1=0.50 R2=1.03 R3=0.97 R4=0.00 | Total=0.724 | MTTR=4 | loss=0.0209
+12:03:39 | INFO     | sentinel.training.pipeline | Episode   11 | R1=0.50 R2=1.03 R3=0.87 R4=0.00 | Total=0.699 | MTTR=4 | loss=n/a
+12:03:46 | INFO     | sentinel.training.pipeline | Episode   12 | R1=0.50 R2=1.01 R3=0.73 R4=0.00 | Total=0.661 | MTTR=5 | loss=-0.0289
+12:03:54 | INFO     | sentinel.training.pipeline | Episode   13 | R1=1.00 R2=1.01 R3=0.80 R4=0.00 | Total=0.853 | MTTR=5 | loss=0.1050
+12:03:59 | INFO     | sentinel.training.pipeline | Episode   14 | R1=0.00 R2=0.51 R3=0.70 R4=0.00 | Total=0.329 | MTTR=4 | loss=-0.3440
+12:04:06 | INFO     | sentinel.training.pipeline | Episode   15 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0071
+12:04:12 | INFO     | sentinel.training.pipeline | Episode   16 | R1=0.50 R2=1.03 R3=0.70 R4=0.00 | Total=0.658 | MTTR=4 | loss=-0.0092
+12:04:18 | INFO     | sentinel.training.pipeline | Episode   17 | R1=0.50 R2=1.01 R3=0.80 R4=0.00 | Total=0.678 | MTTR=5 | loss=n/a
+12:04:24 | INFO     | sentinel.training.pipeline | Episode   18 | R1=1.00 R2=1.03 R3=0.73 R4=0.00 | Total=0.841 | MTTR=4 | loss=0.1235
+12:04:31 | INFO     | sentinel.training.pipeline | Episode   19 | R1=1.00 R2=1.03 R3=0.73 R4=0.00 | Total=0.841 | MTTR=4 | loss=0.1061
+12:04:36 | INFO     | sentinel.training.pipeline | Episode   20 | R1=1.00 R2=1.03 R3=0.70 R4=0.00 | Total=0.833 | MTTR=4 | loss=0.0822
+12:04:42 | INFO     | sentinel.training.pipeline | Episode   21 | R1=0.50 R2=1.03 R3=0.70 R4=0.00 | Total=0.658 | MTTR=4 | loss=-0.0342
+12:04:49 | INFO     | sentinel.training.pipeline | Episode   22 | R1=0.50 R2=1.03 R3=0.87 R4=0.00 | Total=0.699 | MTTR=4 | loss=-0.0071
+12:04:55 | INFO     | sentinel.training.pipeline | Episode   23 | R1=0.00 R2=0.51 R3=0.87 R4=0.00 | Total=0.371 | MTTR=4 | loss=-0.2024
+12:05:02 | INFO     | sentinel.training.pipeline | Episode   24 | R1=1.00 R2=1.01 R3=0.80 R4=0.00 | Total=0.853 | MTTR=5 | loss=0.0967
+12:05:07 | INFO     | sentinel.training.pipeline | Episode   25 | R1=0.50 R2=1.03 R3=0.97 R4=0.00 | Total=0.724 | MTTR=4 | loss=0.0191
+12:05:15 | INFO     | sentinel.training.pipeline | Episode   26 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=-0.0093
+12:05:21 | INFO     | sentinel.training.pipeline | Episode   27 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=-0.0064
+12:05:25 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=181, snippet='{"agent": "argus", "category": "investigative", "name": "QueryLogs", "params": { "service": "pricing-engine", "time_range": [ "now-1m", "now token now" ] }'). Falling back to safe action.
+12:05:29 | INFO     | sentinel.training.pipeline | Episode   28 | R1=1.00 R2=1.01 R3=0.73 R4=0.00 | Total=0.836 | MTTR=5 | loss=0.0809
+12:05:35 | INFO     | sentinel.training.pipeline | Episode   29 | R1=0.50 R2=1.03 R3=0.73 R4=0.00 | Total=0.666 | MTTR=4 | loss=-0.0219
+12:05:44 | INFO     | sentinel.training.pipeline | Episode   30 | R1=0.50 R2=0.99 R3=0.80 R4=0.00 | Total=0.673 | MTTR=6 | loss=-0.0183
+12:05:49 | INFO     | sentinel.training.pipeline | Episode   31 | R1=0.50 R2=1.03 R3=0.97 R4=0.00 | Total=0.724 | MTTR=4 | loss=0.0116
+12:05:56 | INFO     | sentinel.training.pipeline | Episode   32 | R1=1.00 R2=1.03 R3=0.73 R4=0.00 | Total=0.841 | MTTR=4 | loss=0.0664
+12:06:03 | INFO     | sentinel.training.pipeline | Episode   33 | R1=0.00 R2=0.50 R3=0.70 R4=0.00 | Total=0.326 | MTTR=5 | loss=-0.1583
+12:06:12 | INFO     | sentinel.training.pipeline | Episode   34 | R1=0.50 R2=0.99 R3=0.80 R4=0.00 | Total=0.673 | MTTR=6 | loss=n/a
+12:06:18 | INFO     | sentinel.training.pipeline | Episode   35 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=n/a
+12:06:25 | INFO     | sentinel.training.pipeline | Episode   36 | R1=0.00 R2=0.50 R3=0.87 R4=0.00 | Total=0.368 | MTTR=5 | loss=-0.1482
+12:06:31 | INFO     | sentinel.training.pipeline | Episode   37 | R1=1.00 R2=1.03 R3=0.97 R4=0.00 | Total=0.899 | MTTR=4 | loss=0.1093
+12:06:40 | INFO     | sentinel.training.pipeline | Episode   38 | R1=1.00 R2=0.99 R3=0.73 R4=0.00 | Total=0.831 | MTTR=6 | loss=0.0614
+12:06:46 | INFO     | sentinel.training.pipeline | Episode   39 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=n/a
+12:06:53 | INFO     | sentinel.training.pipeline | Episode   40 | R1=0.50 R2=1.01 R3=0.80 R4=0.00 | Total=0.678 | MTTR=5 | loss=n/a
+12:06:58 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=206, snippet='{"agent": "argus", "category": "investigative", "name": "QueryMetrics", "params": { "service": "product-catalog", "metric_name": "error_rate", "time_range": [0,'). Falling back to safe action.
+12:06:59 | INFO     | sentinel.training.pipeline | Episode   41 | R1=0.00 R2=0.51 R3=0.70 R4=0.00 | Total=0.329 | MTTR=4 | loss=-0.1115
+12:07:06 | INFO     | sentinel.training.pipeline | Episode   42 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0135
+12:07:14 | INFO     | sentinel.training.pipeline | Episode   43 | R1=0.50 R2=0.99 R3=0.73 R4=0.00 | Total=0.656 | MTTR=6 | loss=n/a
+12:07:21 | INFO     | sentinel.training.pipeline | Episode   44 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0139
+12:07:23 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=234, snippet='{"agent": "argus", "category": "investigative", "name": "QueryMetrics", "params": { "service": "cart-service", "metric_name": "error_rate", "time_range": [ "now'). Falling back to safe action.
+12:07:28 | INFO     | sentinel.training.pipeline | Episode   45 | R1=0.00 R2=0.51 R3=0.73 R4=0.00 | Total=0.337 | MTTR=4 | loss=-0.1077
+12:07:33 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=274, snippet='{"agent": "argus", "category": "investigative", "name": "QueryMetrics", "params": { "service": "service-mesh", "metric_name": "error_rate", "time_range": [ "now'). Falling back to safe action.
+12:07:35 | INFO     | sentinel.training.pipeline | Episode   46 | R1=0.00 R2=0.51 R3=0.87 R4=0.00 | Total=0.371 | MTTR=4 | loss=-0.0619
+12:07:45 | INFO     | sentinel.training.pipeline | Episode   47 | R1=0.50 R2=0.99 R3=0.73 R4=0.00 | Total=0.656 | MTTR=6 | loss=0.0170
+12:07:52 | INFO     | sentinel.training.pipeline | Episode   48 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0265
+12:07:59 | INFO     | sentinel.training.pipeline | Episode   49 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0229
+12:08:05 | INFO     | sentinel.training.pipeline | Episode   50 | R1=1.00 R2=1.03 R3=0.97 R4=0.00 | Total=0.899 | MTTR=4 | loss=0.0576
+12:08:12 | INFO     | sentinel.training.pipeline | Episode   51 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0141
+12:08:19 | INFO     | sentinel.training.pipeline | Episode   52 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0096
+12:08:24 | INFO     | sentinel.training.pipeline | Episode   53 | R1=1.00 R2=1.03 R3=0.97 R4=0.00 | Total=0.899 | MTTR=4 | loss=0.0379
+12:08:29 | INFO     | sentinel.training.pipeline | Episode   54 | R1=1.00 R2=1.03 R3=0.97 R4=0.00 | Total=0.899 | MTTR=4 | loss=0.0361
+12:08:36 | INFO     | sentinel.training.pipeline | Episode   55 | R1=1.00 R2=1.03 R3=0.73 R4=0.00 | Total=0.841 | MTTR=4 | loss=0.0491
+12:08:43 | INFO     | sentinel.training.pipeline | Episode   56 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=-0.0086
+12:08:50 | INFO     | sentinel.training.pipeline | Episode   57 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=-0.0072
+12:08:59 | INFO     | sentinel.training.pipeline | Episode   58 | R1=0.50 R2=1.01 R3=0.80 R4=0.00 | Total=0.678 | MTTR=5 | loss=-0.0099
+12:09:06 | INFO     | sentinel.training.pipeline | Episode   59 | R1=0.50 R2=1.03 R3=0.70 R4=0.00 | Total=0.658 | MTTR=4 | loss=-0.0109
+12:09:07 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=234, snippet='{"agent": "argus", "category": "investigative", "name": "QueryMetrics", "params": { "service": "service-mesh", "metric_name": "error_rate", "time_range": [ "now'). Falling back to safe action.
+12:09:10 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=403, snippet='{"agent": "argus", "category": "investigative", "name": "QueryMetrics", "params": { "service": "service-mesh", "metric_name": "error_rate", "time_range": [ "now'). Falling back to safe action.
+12:09:14 | INFO     | sentinel.training.pipeline | Episode   60 | R1=0.00 R2=0.51 R3=0.87 R4=0.00 | Total=0.371 | MTTR=4 | loss=-0.0615
+12:09:21 | INFO     | sentinel.training.pipeline | Episode   61 | R1=0.00 R2=0.51 R3=0.70 R4=0.00 | Total=0.329 | MTTR=4 | loss=-0.0994
+12:09:28 | INFO     | sentinel.training.pipeline | Episode   62 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0133
+12:09:35 | INFO     | sentinel.training.pipeline | Episode   63 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0152
+12:09:42 | INFO     | sentinel.training.pipeline | Episode   64 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0062
+12:09:49 | INFO     | sentinel.training.pipeline | Episode   65 | R1=1.00 R2=1.03 R3=0.80 R4=0.00 | Total=0.858 | MTTR=4 | loss=0.0311
+12:09:56 | INFO     | sentinel.training.pipeline | Episode   66 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0032
+12:10:03 | INFO     | sentinel.training.pipeline | Episode   67 | R1=0.50 R2=1.03 R3=0.70 R4=0.00 | Total=0.658 | MTTR=4 | loss=-0.0016
+12:10:08 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=407, snippet='{"agent": "argus", "category": "investigative", "name": "QueryLogs", "params": { "service": "pricing-engine", "time_range": [ "now-5m", "now user Step: 2 Time r'). Falling back to safe action.
+12:10:11 | INFO     | sentinel.training.pipeline | Episode   68 | R1=0.50 R2=1.03 R3=0.73 R4=0.00 | Total=0.666 | MTTR=4 | loss=n/a
+12:10:17 | INFO     | sentinel.training.pipeline | Episode   69 | R1=0.50 R2=1.03 R3=0.97 R4=0.00 | Total=0.724 | MTTR=4 | loss=0.0205
+12:10:27 | INFO     | sentinel.training.pipeline | Episode   70 | R1=1.00 R2=0.99 R3=0.80 R4=0.00 | Total=0.848 | MTTR=6 | loss=0.0167
+12:10:34 | INFO     | sentinel.training.pipeline | Episode   71 | R1=0.00 R2=0.51 R3=0.80 R4=0.00 | Total=0.354 | MTTR=4 | loss=-0.0278
+12:10:42 | INFO     | sentinel.training.pipeline | Episode   72 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0019
+12:10:49 | INFO     | sentinel.training.pipeline | Episode   73 | R1=0.50 R2=1.03 R3=0.87 R4=0.00 | Total=0.699 | MTTR=4 | loss=0.0062
+12:10:55 | INFO     | sentinel.training.pipeline | Episode   74 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0010
+12:11:00 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=206, snippet='{"agent": "argus", "category": "investigative", "name": "QueryMetrics", "params": { "service": "product-catalog", "metric_name": "error_rate", "time_range": [0,'). Falling back to safe action.
+12:11:02 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=206, snippet='{"agent": "argus", "category": "investigative", "name": "QueryMetrics", "params": { "service": "product-catalog", "metric_name": "error_rate", "time_range": [0,'). Falling back to safe action.
+12:11:04 | INFO     | sentinel.training.pipeline | Episode   75 | R1=0.00 R2=0.50 R3=0.70 R4=0.00 | Total=0.326 | MTTR=5 | loss=-0.0138
+12:11:11 | INFO     | sentinel.training.pipeline | Episode   76 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0014
+12:11:18 | INFO     | sentinel.training.pipeline | Episode   77 | R1=0.50 R2=1.03 R3=0.70 R4=0.00 | Total=0.658 | MTTR=4 | loss=0.0005
+12:11:25 | INFO     | sentinel.training.pipeline | Episode   78 | R1=0.00 R2=0.51 R3=0.70 R4=0.00 | Total=0.329 | MTTR=4 | loss=-0.0318
+12:11:31 | INFO     | sentinel.training.pipeline | Episode   79 | R1=0.50 R2=1.03 R3=0.97 R4=0.00 | Total=0.724 | MTTR=4 | loss=0.0150
+12:11:38 | INFO     | sentinel.training.pipeline | Episode   80 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0063
+12:11:45 | INFO     | sentinel.training.pipeline | Episode   81 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0057
+12:11:51 | INFO     | sentinel.training.pipeline | Episode   82 | R1=0.50 R2=1.03 R3=0.97 R4=0.00 | Total=0.724 | MTTR=4 | loss=0.0162
+12:11:58 | INFO     | sentinel.training.pipeline | Episode   83 | R1=1.00 R2=1.03 R3=0.97 R4=0.00 | Total=0.899 | MTTR=4 | loss=0.0271
+12:12:07 | INFO     | sentinel.training.pipeline | Episode   84 | R1=1.00 R2=1.01 R3=0.80 R4=0.00 | Total=0.853 | MTTR=5 | loss=0.0012
+12:12:13 | INFO     | sentinel.training.pipeline | Episode   85 | R1=0.50 R2=1.03 R3=0.97 R4=0.00 | Total=0.724 | MTTR=4 | loss=0.0010
+12:12:23 | INFO     | sentinel.training.pipeline | Episode   86 | R1=0.00 R2=0.50 R3=0.80 R4=0.00 | Total=0.351 | MTTR=5 | loss=-0.0017
+12:12:30 | INFO     | sentinel.training.pipeline | Episode   87 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=0.0025
+12:12:38 | INFO     | sentinel.training.pipeline | Episode   88 | R1=1.00 R2=1.01 R3=0.80 R4=0.00 | Total=0.853 | MTTR=5 | loss=0.0009
+12:12:45 | INFO     | sentinel.training.pipeline | Episode   89 | R1=0.50 R2=1.03 R3=0.70 R4=0.00 | Total=0.658 | MTTR=4 | loss=-0.0018
+12:12:52 | INFO     | sentinel.training.pipeline | Episode   90 | R1=1.00 R2=1.03 R3=0.97 R4=0.00 | Total=0.899 | MTTR=4 | loss=0.0236
+12:12:59 | INFO     | sentinel.training.pipeline | Episode   91 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=-0.0013
+12:13:06 | INFO     | sentinel.training.pipeline | Episode   92 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=-0.0000
+12:13:12 | INFO     | sentinel.training.pipeline | Episode   93 | R1=0.50 R2=1.03 R3=0.87 R4=0.00 | Total=0.699 | MTTR=4 | loss=n/a
+12:13:15 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=205, snippet='{"agent": "argus", "category": "investigative", "name": "QueryMetrics", "params": { "service": "secret-manager", "metric_name": "error_rate", "time_range": [0, '). Falling back to safe action.
+12:13:19 | INFO     | sentinel.training.pipeline | Episode   94 | R1=1.00 R2=1.03 R3=0.97 R4=0.00 | Total=0.899 | MTTR=4 | loss=0.0200
+12:13:25 | INFO     | sentinel.training.pipeline | Episode   95 | R1=0.50 R2=1.03 R3=0.73 R4=0.00 | Total=0.666 | MTTR=4 | loss=-0.0005
+12:13:33 | INFO     | sentinel.training.pipeline | Episode   96 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=-0.0001
+12:13:40 | INFO     | sentinel.training.pipeline | Episode   97 | R1=0.50 R2=1.03 R3=0.80 R4=0.00 | Total=0.683 | MTTR=4 | loss=-0.0001
+12:13:46 | INFO     | sentinel.training.pipeline | Episode   98 | R1=0.50 R2=1.03 R3=0.87 R4=0.00 | Total=0.699 | MTTR=4 | loss=n/a
+12:13:56 | INFO     | sentinel.training.pipeline | Episode   99 | R1=1.00 R2=0.99 R3=0.73 R4=0.00 | Total=0.831 | MTTR=6 | loss=0.0101
+12:13:56 | INFO     | sentinel.training.pipeline | TensorBoard experiment tracking — run complete, writer closed.
+12:13:56 | INFO     | sentinel.worker | Training done: {
+  "agent": "argus",
+  "tag": "full",
+  "episodes": 100,
+  "elapsed_s": 707.2,
+  "sec_per_ep": 7.1,
+  "avg_reward_last10": 0.7426,
+  "avg_r1_last10": 0.65,
+  "avg_mttr_last10": 4.2,
+  "best_reward": 0.8994,
+  "best_r1": 1.0
+}
+12:13:56 | INFO     | sentinel.worker | Summary saved (pre-eval): /home/harsh/project/theory/sentinel/results/argus_full_summary.json
+12:13:56 | INFO     | sentinel.worker | Running post-training evaluation (3 eps/tier) ...
+12:14:07 | WARNING  | sentinel.training.action_parser | parse_llm_action: could not extract JSON from output (len=206, snippet='{"agent": "argus", "category": "investigative", "name": "QueryMetrics", "params": { "service": "product-catalog", "metric_name": "error_rate", "time_range": [0,'). Falling back to safe action.
+=== SENTINEL Evaluation Report ===
+Difficulty | R1           | R2           | R3           | R4           | Total        | MTTR        
+----------------------------------------------------------------------------------------------------
+easy       | 0.67 ± 0.29  | 1.01 ± 0.02  | 0.71 ± 0.02  | 0.00 ± 0.00  | 0.72 ± 0.10  | 4.7 ± 1.2
+medium     | 0.50 ± 0.00  | 1.01 ± 0.01  | 0.80 ± 0.00  | 0.00 ± 0.00  | 0.68 ± 0.00  | 4.7 ± 0.6
+hard       | 0.50 ± 0.50  | 0.85 ± 0.30  | 0.84 ± 0.13  | 0.00 ± 0.00  | 0.64 ± 0.26  | 4.0 ± 0.0
+12:14:58 | INFO     | sentinel.worker | Summary saved: /home/harsh/project/theory/sentinel/results/argus_full_summary.json
+__SUMMARY__{"agent": "argus", "tag": "full", "episodes": 100, "elapsed_s": 707.2, "sec_per_ep": 7.1, "avg_reward_last10": 0.7426, "avg_r1_last10": 0.65, "avg_mttr_last10": 4.2, "best_reward": 0.8994, "best_r1": 1.0, "eval": {"easy": {"r1_mean": 0.6667, "total_mean": 0.7156, "mttr_mean": 4.7}, "medium": {"r1_mean": 0.5, "total_mean": 0.6794, "mttr_mean": 4.7}, "hard": {"r1_mean": 0.5, "total_mean": 0.6426, "mttr_mean": 4.0}}}__END__

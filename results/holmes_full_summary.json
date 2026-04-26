@@ -2,28 +2,28 @@
   "agent": "holmes",
   "tag": "full",
   "episodes": 100,
-  "elapsed_s": 455.5,
-  "sec_per_ep": 4.6,
-  "avg_reward_last10": 0.74,
-  "avg_r1_last10": 0.65,
-  "avg_mttr_last10": 1.0,
-  "best_reward": 0.9158,
+  "elapsed_s": 708.7,
+  "sec_per_ep": 7.1,
+  "avg_reward_last10": 0.7713,
+  "avg_r1_last10": 0.75,
+  "avg_mttr_last10": 4.3,
+  "best_reward": 0.8994,
   "best_r1": 1.0,
   "eval": {
     "easy": {
-      "r1_mean": 0.6667,
-      "total_mean": 0.738,
-      "mttr_mean": 1.0
+      "r1_mean": 1.0,
+      "total_mean": 0.8289,
+      "mttr_mean": 5.3
     },
     "medium": {
-      "r1_mean": 0.5,
-      "total_mean": 0.6991,
-      "mttr_mean": 1.0
+      "r1_mean": 0.6667,
+      "total_mean": 0.7411,
+      "mttr_mean": 4.0
     },
     "hard": {
-      "r1_mean": 0.5,
-      "total_mean": 0.634,
-      "mttr_mean": 1.0
+      "r1_mean": 0.6667,
+      "total_mean": 0.7628,
+      "mttr_mean": 4.7
     }
   }
 }

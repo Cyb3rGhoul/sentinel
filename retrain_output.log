@@ -1,0 +1,210 @@
+nohup: ignoring input
+11:37:20 | INFO     | SENTINEL RETRAIN — Starting both agents sequentially
+11:37:20 | INFO     | Fixes applied: FormHypothesis terminates Holmes, blast_resolved terminates Forge
+11:37:20 | INFO     | Fixes applied: Advantage-weighted gradient steps, improved prompts
+11:37:20 | INFO     | ============================================================
+11:37:20 | INFO     |   TRAINING: HOLMES | 100 episodes
+11:37:20 | INFO     | ============================================================
+11:50:26 | INFO     | HOLMES finished: exit_code=0 elapsed=787s (13.1 min)
+11:50:26 | INFO     | HOLMES summary: {
+  "agent": "holmes",
+  "tag": "full",
+  "episodes": 100,
+  "elapsed_s": 708.7,
+  "sec_per_ep": 7.1,
+  "avg_reward_last10": 0.7713,
+  "avg_r1_last10": 0.75,
+  "avg_mttr_last10": 4.3,
+  "best_reward": 0.8994,
+  "best_r1": 1.0,
+  "eval": {
+    "easy": {
+      "r1_mean": 1.0,
+      "total_mean": 0.8289,
+      "mttr_mean": 5.3
+    },
+    "medium": {
+      "r1_mean": 0.6667,
+      "total_mean": 0.7411,
+      "mttr_mean": 4.0
+    },
+    "hard": {
+      "r1_mean": 0.6667,
+      "total_mean": 0.7628,
+      "mttr_mean": 4.7
+    }
+  }
+}
+11:50:26 | INFO     | ============================================================
+11:50:26 | INFO     |   TRAINING: FORGE | 100 episodes
+11:50:26 | INFO     | ============================================================
+12:02:02 | INFO     | FORGE finished: exit_code=0 elapsed=696s (11.6 min)
+12:02:02 | INFO     | FORGE summary: {
+  "agent": "forge",
+  "tag": "full",
+  "episodes": 100,
+  "elapsed_s": 633.6,
+  "sec_per_ep": 6.3,
+  "avg_reward_last10": 0.7603,
+  "avg_r1_last10": 0.4,
+  "avg_mttr_last10": 5.8,
+  "best_reward": 0.8491,
+  "best_r1": 0.5,
+  "eval": {
+    "easy": {
+      "r1_mean": 0.3333,
+      "total_mean": 0.7118,
+      "mttr_mean": 7.0
+    },
+    "medium": {
+      "r1_mean": 0.5,
+      "total_mean": 0.8229,
+      "mttr_mean": 6.0
+    },
+    "hard": {
+      "r1_mean": 0.1667,
+      "total_mean": 0.6133,
+      "mttr_mean": 5.3
+    }
+  }
+}
+12:02:02 | INFO     | ============================================================
+12:02:02 | INFO     |   TRAINING: ARGUS | 100 episodes
+12:02:02 | INFO     | ============================================================
+12:14:58 | INFO     | ARGUS finished: exit_code=0 elapsed=777s (12.9 min)
+12:14:58 | INFO     | ARGUS summary: {
+  "agent": "argus",
+  "tag": "full",
+  "episodes": 100,
+  "elapsed_s": 707.2,
+  "sec_per_ep": 7.1,
+  "avg_reward_last10": 0.7426,
+  "avg_r1_last10": 0.65,
+  "avg_mttr_last10": 4.2,
+  "best_reward": 0.8994,
+  "best_r1": 1.0,
+  "eval": {
+    "easy": {
+      "r1_mean": 0.6667,
+      "total_mean": 0.7156,
+      "mttr_mean": 4.7
+    },
+    "medium": {
+      "r1_mean": 0.5,
+      "total_mean": 0.6794,
+      "mttr_mean": 4.7
+    },
+    "hard": {
+      "r1_mean": 0.5,
+      "total_mean": 0.6426,
+      "mttr_mean": 4.0
+    }
+  }
+}
+12:14:58 | INFO     | ============================================================
+12:14:58 | INFO     |   TRAINING: HERMES | 100 episodes
+12:14:58 | INFO     | ============================================================
+12:26:20 | INFO     | HERMES finished: exit_code=0 elapsed=681s (11.4 min)
+12:26:20 | INFO     | HERMES summary: {
+  "agent": "hermes",
+  "tag": "full",
+  "episodes": 100,
+  "elapsed_s": 620.8,
+  "sec_per_ep": 6.2,
+  "avg_reward_last10": 0.4965,
+  "avg_r1_last10": 0.0,
+  "avg_mttr_last10": 7.2,
+  "best_reward": 0.5121,
+  "best_r1": 0.0,
+  "eval": {
+    "easy": {
+      "r1_mean": 0.0,
+      "total_mean": 0.4921,
+      "mttr_mean": 9.0
+    },
+    "medium": {
+      "r1_mean": 0.0,
+      "total_mean": 0.4989,
+      "mttr_mean": 6.0
+    },
+    "hard": {
+      "r1_mean": 0.0,
+      "total_mean": 0.5054,
+      "mttr_mean": 3.7
+    }
+  }
+}
+12:26:20 | INFO     | ============================================================
+12:26:20 | INFO     |   TRAINING: ORACLE | 100 episodes
+12:26:20 | INFO     | ============================================================
+12:29:26 | INFO     | ORACLE finished: exit_code=0 elapsed=186s (3.1 min)
+12:29:26 | INFO     | ORACLE summary: {
+  "agent": "oracle",
+  "tag": "full",
+  "episodes": 100,
+  "elapsed_s": 166.1,
+  "sec_per_ep": 1.7,
+  "avg_reward_last10": 0.3662,
+  "avg_r1_last10": 0.0,
+  "avg_mttr_last10": 1.0,
+  "best_reward": 0.4037,
+  "best_r1": 0.0,
+  "eval": {
+    "easy": {
+      "r1_mean": 0.0,
+      "total_mean": 0.3426,
+      "mttr_mean": 1.0
+    },
+    "medium": {
+      "r1_mean": 0.0,
+      "total_mean": 0.3621,
+      "mttr_mean": 1.0
+    },
+    "hard": {
+      "r1_mean": 0.0,
+      "total_mean": 0.3648,
+      "mttr_mean": 1.0
+    }
+  }
+}
+12:29:26 | INFO     | Generating training curves...
+============================================================
+SENTINEL — Generating Training Curves
+============================================================
+
+[HOLMES]
+  Loaded 100 episodes
+  ✓ Saved /home/harsh/project/theory/sentinel/results/holmes_training_curves.png
+  ✓ Saved /home/harsh/project/theory/sentinel/results/holmes_loss_curve.png
+
+[FORGE]
+  Loaded 100 episodes
+  ✓ Saved /home/harsh/project/theory/sentinel/results/forge_training_curves.png
+  ✓ Saved /home/harsh/project/theory/sentinel/results/forge_loss_curve.png
+
+[ARGUS]
+  Loaded 100 episodes
+  ✓ Saved /home/harsh/project/theory/sentinel/results/argus_training_curves.png
+  ✓ Saved /home/harsh/project/theory/sentinel/results/argus_loss_curve.png
+
+[HERMES]
+  Loaded 100 episodes
+  ✓ Saved /home/harsh/project/theory/sentinel/results/hermes_training_curves.png
+  ✓ Saved /home/harsh/project/theory/sentinel/results/hermes_loss_curve.png
+
+[ORACLE]
+  Loaded 100 episodes
+  ✓ Saved /home/harsh/project/theory/sentinel/results/oracle_training_curves.png
+  ✓ Saved /home/harsh/project/theory/sentinel/results/oracle_loss_curve.png
+
+[COMPARISON]
+  ✓ Saved /home/harsh/project/theory/sentinel/results/comparison_all_agents.png
+  ✓ Saved /home/harsh/project/theory/sentinel/results/comparison_loss.png
+
+============================================================
+Done! All plots saved to: /home/harsh/project/theory/sentinel/results
+============================================================
+12:29:29 | INFO     | Consolidated results: /home/harsh/project/theory/sentinel/results/retrain_results.json
+12:29:29 | INFO     | ============================================================
+12:29:29 | INFO     |   ALL DONE
+12:29:29 | INFO     | ============================================================

@@ -2,27 +2,27 @@
   "agent": "argus",
   "tag": "full",
   "episodes": 100,
-  "elapsed_s": 713.2,
+  "elapsed_s": 707.2,
   "sec_per_ep": 7.1,
-  "avg_reward_last10": 0.7686,
-  "avg_r1_last10": 0.75,
-  "avg_mttr_last10": 4.0,
+  "avg_reward_last10": 0.7426,
+  "avg_r1_last10": 0.65,
+  "avg_mttr_last10": 4.2,
   "best_reward": 0.8994,
   "best_r1": 1.0,
   "eval": {
     "easy": {
-      "r1_mean": 0.0,
-      "total_mean": 0.3289,
-      "mttr_mean": 4.0
+      "r1_mean": 0.6667,
+      "total_mean": 0.7156,
+      "mttr_mean": 4.7
     },
     "medium": {
       "r1_mean": 0.5,
-      "total_mean": 0.6828,
-      "mttr_mean": 4.0
+      "total_mean": 0.6794,
+      "mttr_mean": 4.7
     },
     "hard": {
       "r1_mean": 0.5,
-      "total_mean": 0.6287,
+      "total_mean": 0.6426,
       "mttr_mean": 4.0
     }
   }

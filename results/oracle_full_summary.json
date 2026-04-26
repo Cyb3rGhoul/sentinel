@@ -2,7 +2,7 @@
   "agent": "oracle",
   "tag": "full",
   "episodes": 100,
-  "elapsed_s": 170.9,
+  "elapsed_s": 166.1,
   "sec_per_ep": 1.7,
   "avg_reward_last10": 0.3662,
   "avg_r1_last10": 0.0,
