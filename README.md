@@ -20,8 +20,9 @@ SENTINEL is a Gymnasium-compatible environment for training and evaluating agent
 | Deliverable | Link |
 |-------------|------|
 | GitHub Repository | [github.com/sayantikalaskar/sentinel](https://github.com/sayantikalaskar/sentinel) |
-| Hugging Face Space | [huggingface.co/spaces/harry1911/sentinel](https://huggingface.co/spaces/harry1911/sentinel) |
-| Live Runtime | [harry1911-sentinel.hf.space](https://harry1911-sentinel.hf.space/) |
+| Hugging Face Space Repo | [huggingface.co/spaces/harry1911/sentinel](https://huggingface.co/spaces/harry1911/sentinel) |
+| Live Dashboard | [harry1911-sentinel.hf.space/dashboard/](https://harry1911-sentinel.hf.space/dashboard/) |
+| Live Runtime Root | [harry1911-sentinel.hf.space](https://harry1911-sentinel.hf.space/) |
 | Training Notebook | [`sentinel_colab_training.ipynb`](sentinel_colab_training.ipynb) |
 | Training Scripts | [`train.py`](train.py), [`retrain.py`](retrain.py) |
 | OpenEnv Manifest | [`openenv.yaml`](openenv.yaml) |
@@ -32,7 +33,8 @@ SENTINEL is a Gymnasium-compatible environment for training and evaluating agent
 
 The public Space exposes:
 
-- Space page: [huggingface.co/spaces/harry1911/sentinel](https://huggingface.co/spaces/harry1911/sentinel)
+- Space repo page: [huggingface.co/spaces/harry1911/sentinel](https://huggingface.co/spaces/harry1911/sentinel)
+- Dashboard UI: [harry1911-sentinel.hf.space/dashboard/](https://harry1911-sentinel.hf.space/dashboard/)
 - Runtime root: [harry1911-sentinel.hf.space](https://harry1911-sentinel.hf.space/)
 - Health endpoint: [harry1911-sentinel.hf.space/health](https://harry1911-sentinel.hf.space/health)
 - API docs: [harry1911-sentinel.hf.space/docs](https://harry1911-sentinel.hf.space/docs)

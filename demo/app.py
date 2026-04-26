@@ -218,7 +218,7 @@ def _current_log_text() -> str:
     return "\n".join(reversed(_action_log))
 
 
-def _snapshot(status: str) -> tuple[str, str, str, str, str, str, str]:
+def _snapshot(status: str) -> tuple[str, str, str, str, str, str, str, str]:
     return (
         status,
         _health_summary(),
@@ -227,6 +227,7 @@ def _snapshot(status: str) -> tuple[str, str, str, str, str, str, str]:
         _json_blob(_last_observation),
         _json_blob(_last_step_result),
         _current_log_text(),
+        _render_snapshot(),
     )
 
 
@@ -238,7 +239,7 @@ def _perform_reset(seed: int, incident_id: str) -> tuple[SentinelEnvironment, An
     return adapter, observation
 
 
-def _reset_env(seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str]:
+def _reset_env(seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str, str]:
     global _last_observation, _last_step_result
 
     try:
@@ -259,7 +260,7 @@ def _reset_env(seed: int, incident_id: str) -> tuple[str, str, str, str, str, st
     )
 
 
-def _run_action(action_name: str, seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str]:
+def _run_action(action_name: str, seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str, str]:
     global _last_observation, _last_step_result
 
     adapter = _ensure_adapter()
@@ -309,7 +310,7 @@ def _run_action(action_name: str, seed: int, incident_id: str) -> tuple[str, str
     )
 
 
-def _run_custom_action(action_json: str, seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str]:
+def _run_custom_action(action_json: str, seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str, str]:
     global _last_observation, _last_step_result
 
     adapter = _ensure_adapter()
@@ -362,7 +363,7 @@ def _run_custom_action(action_json: str, seed: int, incident_id: str) -> tuple[s
     )
 
 
-def _run_smoke_test(seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str]:
+def _run_smoke_test(seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str, str]:
     global _last_observation, _last_step_result
 
     adapter = SentinelEnvironment()
@@ -508,6 +509,13 @@ def _run_autonomous(seed: int, incident_id: str, delay_seconds: float) -> Any:
 
     yield _snapshot(
         "> ⏸️ **Autonomous mode paused** — Reached the demo step limit. You can inspect the state or continue manually."
+    )
+
+
+def _stop_autonomous() -> tuple[str, str, str, str, str, str, str, str]:
+    _append_log("autonomous_stop()")
+    return _snapshot(
+        "> ⏹️ **Autonomous mode stopped** — The run was paused. Inspect the current state or continue manually."
     )
 
 
@@ -665,7 +673,7 @@ def build_dashboard() -> Any:
             )
 
         # ── Wire up events ────────────────────────────────────
-        outputs = [status, runtime, health_grid, state_json, observation_json, latest_step, action_log]
+        outputs = [status, runtime, health_grid, state_json, observation_json, latest_step, action_log, render_output]
 
         reset_btn.click(fn=_reset_env, inputs=[seed, incident_id], outputs=outputs)
         smoke_btn.click(fn=_run_smoke_test, inputs=[seed, incident_id], outputs=outputs)
@@ -679,20 +687,7 @@ def build_dashboard() -> Any:
             inputs=[seed, incident_id, auto_delay],
             outputs=outputs,
         )
-        stop_auto_btn.click(fn=None, cancels=[auto_run_event])
-
-        for trigger in (
-            reset_btn,
-            smoke_btn,
-            query_logs_btn,
-            query_metrics_btn,
-            restart_btn,
-            escalate_btn,
-            custom_btn,
-            auto_btn,
-            stop_auto_btn,
-        ):
-            trigger.click(fn=_render_snapshot, outputs=[render_output])
+        stop_auto_btn.click(fn=_stop_autonomous, outputs=outputs, cancels=[auto_run_event])
 
     return dashboard
 
