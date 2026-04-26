@@ -56,6 +56,19 @@ def _ensure_adapter() -> SentinelEnvironment:
     return _adapter
 
 
+def _sync_adapter_state(
+    adapter: SentinelEnvironment,
+    observation: Any,
+    *,
+    episode_id: str | None = None,
+) -> None:
+    adapter._state.episode_id = episode_id or adapter._env._episode_id
+    adapter._state.step_count = adapter._env.step_count
+    adapter._state.incident_id = observation.info.get("incident_id", adapter._state.incident_id)
+    adapter._state.terminated = bool(observation.done)
+    adapter._state.truncated = False
+
+
 def _json_blob(value: Any) -> str:
     return json.dumps(value, indent=2, sort_keys=True, default=str)
 
@@ -149,16 +162,12 @@ def _reset_env(seed: int, incident_id: str) -> tuple[str, str, str, str, str, st
     global _last_observation, _last_step_result
 
     adapter = _ensure_adapter()
-    env = adapter._env
-    original_templates = env.incident_generator._templates
-    matching = [tpl for tpl in original_templates if tpl.id == incident_id]
-    if matching:
-        env.incident_generator._templates = matching
-
     try:
-        observation = adapter.reset(seed=seed)
-    finally:
-        env.incident_generator._templates = original_templates
+        obs, info = adapter._env.reset(seed=seed, options={"incident_id": incident_id})
+        observation = adapter._to_observation(obs=obs, reward=0.0, done=False, info=info)
+        _sync_adapter_state(adapter, observation)
+    except Exception as exc:
+        return _snapshot(f"Reset failed: `{exc}`")
 
     _last_observation = observation.model_dump()
     _last_step_result = {
@@ -178,8 +187,13 @@ def _run_action(action_name: str) -> tuple[str, str, str, str, str, str, str]:
 
     adapter = _ensure_adapter()
     payload = _PRESET_ACTIONS[action_name]
-    action = SentinelAction(**payload)
-    observation = adapter.step(action)
+    try:
+        action = SentinelAction(**payload)
+        observation = adapter.step(action)
+    except Exception as exc:
+        _append_log(f"{payload['agent']}::{payload['name']} -> ERROR: {exc}")
+        return _snapshot(f"Action `{payload['name']}` failed: `{exc}`")
+
     _last_observation = observation.model_dump()
     _last_step_result = {
         "action": payload,
@@ -205,7 +219,12 @@ def _run_custom_action(action_json: str) -> tuple[str, str, str, str, str, str, 
     except Exception as exc:
         return _snapshot(f"Custom action parse failed: `{exc}`")
 
-    observation = adapter.step(action)
+    try:
+        observation = adapter.step(action)
+    except Exception as exc:
+        _append_log(f"custom_action -> ERROR: {exc}")
+        return _snapshot(f"Custom action execution failed: `{exc}`")
+
     _last_observation = observation.model_dump()
     _last_step_result = {
         "action": payload,
@@ -225,19 +244,16 @@ def _run_smoke_test(seed: int, incident_id: str) -> tuple[str, str, str, str, st
     global _last_observation, _last_step_result
 
     adapter = SentinelEnvironment()
-    env = adapter._env
-    original_templates = env.incident_generator._templates
-    matching = [tpl for tpl in original_templates if tpl.id == incident_id]
-    if matching:
-        env.incident_generator._templates = matching
-
     try:
-        observation = adapter.reset(seed=seed)
-    finally:
-        env.incident_generator._templates = original_templates
-
-    query_logs = adapter.step(SentinelAction(**_PRESET_ACTIONS["QueryLogs"]))
-    query_metrics = adapter.step(SentinelAction(**_PRESET_ACTIONS["QueryMetrics"]))
+        obs, info = adapter._env.reset(seed=seed, options={"incident_id": incident_id})
+        observation = adapter._to_observation(obs=obs, reward=0.0, done=False, info=info)
+        _sync_adapter_state(adapter, observation)
+        query_logs = adapter.step(SentinelAction(**_PRESET_ACTIONS["QueryLogs"]))
+        query_metrics = adapter.step(SentinelAction(**_PRESET_ACTIONS["QueryMetrics"]))
+    except Exception as exc:
+        _last_step_result = {"smoke_test": "fail", "error": str(exc)}
+        _append_log(f"smoke_test(seed={seed}, incident={incident_id}) -> ERROR: {exc}")
+        return _snapshot(f"Smoke test failed: `{exc}`")
 
     required_keys = {
         "metrics_snapshot",

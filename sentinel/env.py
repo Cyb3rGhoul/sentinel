@@ -163,8 +163,12 @@ class Sentinel_Env(gymnasium.Env):
         self.message_bus.clear()
         self._episode_id = str(uuid.uuid4())
 
-        # 2. Sample a new incident template
-        template = self.incident_generator.sample(self._difficulty_distribution)
+        # 2. Select incident template, optionally forcing a specific incident id
+        requested_incident_id = None if options is None else options.get("incident_id")
+        if requested_incident_id is not None:
+            template = self.incident_generator.get_template(str(requested_incident_id))
+        else:
+            template = self.incident_generator.sample(self._difficulty_distribution)
 
         # 3. Create IncidentState from template
         incident_state = IncidentState(

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from models import SentinelAction
+from sentinel.env import Sentinel_Env
 from server.sentinel_environment import SentinelEnvironment
 
 
@@ -38,3 +39,9 @@ def test_adapter_reset_step_and_state() -> None:
     assert isinstance(next_obs.recent_logs, list)
     assert isinstance(next_obs.active_traces, list)
     assert isinstance(next_obs.sla_state, dict)
+
+
+def test_env_reset_can_force_specific_incident_id() -> None:
+    env = Sentinel_Env()
+    _, info = env.reset(seed=42, options={"incident_id": "E1"})
+    assert info["incident_id"] == "E1"

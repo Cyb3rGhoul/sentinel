@@ -146,6 +146,17 @@ class Incident_Generator:
 
         return random.choice(candidates)
 
+    def get_template(self, template_id: str) -> IncidentTemplate:
+        """Return a template by id.
+
+        Raises:
+            ValueError: if no template exists for the requested id.
+        """
+        for template in self._templates:
+            if template.id == template_id:
+                return template
+        raise ValueError(f"Unknown incident template id: {template_id!r}")
+
     def validate_template(self, template: IncidentTemplate) -> bool:
         """Validate a template against the IncidentTemplate schema.
 
