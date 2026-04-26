@@ -1,16 +1,12 @@
-"""SENTINEL Gradio Dashboard.
-
-Visualizes NexaStack health, agent actions, and training progress.
-Compatible with HuggingFace Spaces (demo.launch() at module level).
-"""
+"""SENTINEL validation dashboard for Hugging Face Spaces."""
 from __future__ import annotations
 
 import json
-import time
 from typing import Any
 
+from models import SentinelAction
 from sentinel.config import load_config
-from sentinel.training.pipeline import get_placeholder_action
+from server.sentinel_environment import SentinelEnvironment
 
 try:
     import gradio as gr
@@ -19,295 +15,376 @@ except ImportError:
     gr = None  # type: ignore[assignment]
     _GRADIO_AVAILABLE = False
 
-# ---------------------------------------------------------------------------
-# Module-level state
-# ---------------------------------------------------------------------------
-
-_action_log: list[dict] = []          # last 20 actions
-_metrics_log: list[dict] = []         # last 50 episode metrics
-_oracle_gap: str = "No episodes completed yet."
-_env: Any = None  # Sentinel_Env | None
-
-# Incident IDs from the library
+_adapter: SentinelEnvironment | None = None
+_last_observation: dict[str, Any] = {}
+_last_step_result: dict[str, Any] = {}
+_action_log: list[str] = []
 _INCIDENT_IDS = ["E1", "E2", "E3", "M1", "M2", "M3", "M4", "H1", "H2", "H3"]
 
-# ---------------------------------------------------------------------------
-# Helper: seed demo state
-# ---------------------------------------------------------------------------
-
-def _seed_demo_state(env: Any) -> None:
-    """Run 5 steps with seed=42 to populate demo state."""
-    cfg = load_config()
-    seed = cfg.demo.seed
-    action = get_placeholder_action()
-    env.reset(seed=seed)
-    for _ in range(5):
-        obs, reward, terminated, truncated, info = env.step(action)
-        _action_log.append({
-            "timestamp": time.time(),
-            "agent": action.get("agent", "holmes"),
-            "name": action.get("name", "QueryLogs"),
-            "params": action.get("params", {}),
-        })
-        if terminated:
-            break
-
-
-def _create_demo_env() -> Any:
-    """Create and seed a demo Sentinel_Env, returning None on failure."""
-    try:
-        from sentinel.env import Sentinel_Env
-        env = Sentinel_Env()
-        _seed_demo_state(env)
-        templates = getattr(env.incident_generator, "_templates", [])
-        if templates:
-            global _INCIDENT_IDS
-            _INCIDENT_IDS = [tpl.id for tpl in templates]
-        return env
-    except Exception as e:
-        print(f"Warning: Could not create demo env: {e}")
-        return None
+_PRESET_ACTIONS: dict[str, dict[str, Any]] = {
+    "QueryLogs": {
+        "agent": "holmes",
+        "category": "investigative",
+        "name": "QueryLogs",
+        "params": {"service": "cart-service", "time_range": [0, 60]},
+    },
+    "QueryMetrics": {
+        "agent": "argus",
+        "category": "investigative",
+        "name": "QueryMetrics",
+        "params": {"service": "order-service", "metric_name": "cpu", "time_range": [0, 60]},
+    },
+    "RestartService": {
+        "agent": "forge",
+        "category": "remediation",
+        "name": "RestartService",
+        "params": {"service": "cart-service"},
+    },
+    "EscalateToHuman": {
+        "agent": "oracle",
+        "category": "meta",
+        "name": "EscalateToHuman",
+        "params": {"reason": "Validator smoke test escalation"},
+    },
+}
 
 
-# ---------------------------------------------------------------------------
-# Dashboard component builders
-# ---------------------------------------------------------------------------
+def _ensure_adapter() -> SentinelEnvironment:
+    global _adapter
+    if _adapter is None:
+        _adapter = SentinelEnvironment()
+    return _adapter
 
-def build_health_grid(env: Any) -> str:
-    """Return an HTML string with a 30-service color-coded grid."""
-    if env is None:
-        return "<p style='color:gray'>No environment available.</p>"
 
-    blast_radius: set[str] = set()
-    if env.world_state.incident_state is not None:
-        blast_radius = env.world_state.incident_state.current_blast_radius
+def _json_blob(value: Any) -> str:
+    return json.dumps(value, indent=2, sort_keys=True, default=str)
 
-    cells = []
-    for svc, metrics in env.world_state.services.items():
-        bg = "#22c55e" if metrics.availability else "#ef4444"
-        border = "3px solid #f97316" if svc in blast_radius else "1px solid #374151"
-        cpu_pct = round(metrics.cpu * 100, 1)
-        err_pct = round(metrics.error_rate * 100, 2)
-        cell = (
-            f"<div style='"
-            f"background:{bg};border:{border};border-radius:6px;"
-            f"padding:6px 4px;margin:3px;display:inline-block;"
-            f"width:140px;vertical-align:top;font-size:11px;color:#fff;"
-            f"font-family:monospace;'>"
-            f"<b>{svc}</b><br>"
-            f"CPU {cpu_pct}% | Err {err_pct}%"
-            f"</div>"
+
+def _append_log(message: str) -> None:
+    _action_log.append(message)
+    del _action_log[:-20]
+
+
+def _health_summary() -> str:
+    if _adapter is None:
+        return (
+            "### Runtime Status\n"
+            "- Adapter: not initialized\n"
+            "- API health: `/health` should return `initialized: false` until reset\n"
         )
-        cells.append(cell)
+
+    state = _adapter.state.model_dump()
+    return (
+        "### Runtime Status\n"
+        f"- Episode id: `{state['episode_id']}`\n"
+        f"- Step count: `{state['step_count']}`\n"
+        f"- Incident id: `{state.get('incident_id')}`\n"
+        f"- Terminated: `{state.get('terminated')}`\n"
+        f"- Truncated: `{state.get('truncated')}`\n"
+    )
+
+
+def _service_health_html() -> str:
+    if _adapter is None:
+        return "<p>No environment initialized yet.</p>"
+
+    env = _adapter._env
+    incident_state = env.world_state.incident_state
+    blast_radius = incident_state.current_blast_radius if incident_state is not None else set()
+
+    cells: list[str] = []
+    for service, metrics in env.world_state.services.items():
+        bg = "#0f766e" if metrics.availability else "#b91c1c"
+        border = "3px solid #f59e0b" if service in blast_radius else "1px solid #334155"
+        cells.append(
+            "<div style='"
+            f"background:{bg};border:{border};border-radius:10px;padding:8px 10px;margin:4px;"
+            "display:inline-block;width:158px;vertical-align:top;color:#fff;font:12px/1.4 monospace;'>"
+            f"<b>{service}</b><br>"
+            f"CPU {metrics.cpu * 100:.1f}%<br>"
+            f"Err {metrics.error_rate * 100:.2f}%<br>"
+            f"Latency {metrics.latency_ms:.0f} ms"
+            "</div>"
+        )
 
     return (
-        "<div style='background:#111827;padding:10px;border-radius:8px;"
-        "line-height:1.6;'>"
+        "<div style='background:#0f172a;padding:12px;border-radius:12px;'>"
         + "".join(cells)
         + "</div>"
     )
 
 
-def build_action_feed(action_log: list[dict]) -> str:
-    """Return last 20 entries from action_log as a formatted string (newest first)."""
-    recent = action_log[-20:][::-1]
-    if not recent:
+def _render_snapshot() -> str:
+    if _adapter is None:
+        return "(no render available yet)"
+    rendered = _adapter._env.render()
+    return rendered or "(render returned no output)"
+
+
+def _current_state_json() -> str:
+    if _adapter is None:
+        return _json_blob({"initialized": False})
+    return _json_blob(_adapter.state.model_dump())
+
+
+def _current_log_text() -> str:
+    if not _action_log:
         return "(no actions yet)"
-    lines = []
-    for entry in recent:
-        ts = time.strftime("%H:%M:%S", time.localtime(entry.get("timestamp", 0)))
-        agent = entry.get("agent", "?").upper()
-        name = entry.get("name", "?")
-        params = entry.get("params", {})
-        # Summarise params: show first key=value pair only
-        if params:
-            first_key = next(iter(params))
-            params_summary = f"{first_key}={params[first_key]}"
-        else:
-            params_summary = ""
-        lines.append(f"[{ts}] {agent}: {name} ({params_summary})")
-    return "\n".join(lines)
+    return "\n".join(reversed(_action_log))
 
 
-def get_training_data(metrics_log: list[dict]) -> Any:
-    """Return last 50 entries as a pandas DataFrame for LinePlot."""
-    try:
-        import pandas as pd
-    except ImportError:
-        return None
-
-    recent = metrics_log[-50:]
-    if not recent:
-        return pd.DataFrame(columns=["episode", "total_reward", "mttr", "r1", "r2", "r3", "r4"])
-
-    rows = []
-    for i, m in enumerate(recent):
-        rows.append({
-            "episode": m.get("episode", i),
-            "total_reward": m.get("total_reward", 0.0),
-            "mttr": m.get("mttr", 0.0),
-            "r1": m.get("r1", 0.0),
-            "r2": m.get("r2", 0.0),
-            "r3": m.get("r3", 0.0),
-            "r4": m.get("r4", 0.0),
-        })
-    return pd.DataFrame(rows)
-
-
-def build_oracle_display(oracle_gap: str) -> str:
-    """Return formatted HTML for the ORACLE capability gap."""
+def _snapshot(status: str) -> tuple[str, str, str, str, str, str, str]:
     return (
-        "<div style='background:#1e293b;border-radius:8px;padding:12px;"
-        "font-family:monospace;color:#e2e8f0;font-size:12px;'>"
-        "<b style='color:#a78bfa'>ORACLE Capability Gap</b><br><br>"
-        f"{oracle_gap}"
-        "</div>"
+        status,
+        _health_summary(),
+        _service_health_html(),
+        _current_state_json(),
+        _json_blob(_last_observation),
+        _json_blob(_last_step_result),
+        _current_log_text(),
     )
 
 
-# ---------------------------------------------------------------------------
-# Inject incident handler
-# ---------------------------------------------------------------------------
+def _reset_env(seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str]:
+    global _last_observation, _last_step_result
 
-def inject_incident(incident_id: str) -> str:
-    """Inject a named incident into the environment."""
-    global _env
-    if _env is None:
-        return "No environment available."
+    adapter = _ensure_adapter()
+    env = adapter._env
+    original_templates = env.incident_generator._templates
+    matching = [tpl for tpl in original_templates if tpl.id == incident_id]
+    if matching:
+        env.incident_generator._templates = matching
+
     try:
-        # Filter the incident generator to only sample the chosen incident
-        original_templates = _env.incident_generator._templates
-        matching = [inc for inc in original_templates if inc.id == incident_id]
-        if not matching:
-            return f"Incident '{incident_id}' not found in library."
+        observation = adapter.reset(seed=seed)
+    finally:
+        env.incident_generator._templates = original_templates
 
-        _env.incident_generator._templates = matching
-        cfg = load_config()
-        _env.reset(seed=cfg.demo.seed)
-        _env.incident_generator._templates = original_templates
-
-        blast = _env.world_state.incident_state.current_blast_radius if _env.world_state.incident_state else set()
-        return (
-            f"Injected incident {incident_id}. "
-            f"Blast radius: {len(blast)} services ({', '.join(sorted(blast)[:5])}{'...' if len(blast) > 5 else ''})"
-        )
-    except Exception as e:
-        return f"Error injecting incident: {e}"
+    _last_observation = observation.model_dump()
+    _last_step_result = {
+        "event": "reset",
+        "seed": seed,
+        "incident_id": adapter.state.incident_id,
+        "done": observation.done,
+    }
+    _append_log(f"reset(seed={seed}, incident_id={adapter.state.incident_id})")
+    return _snapshot(
+        f"Reset succeeded. Episode `{adapter.state.episode_id}` is ready at step `0`."
+    )
 
 
-# ---------------------------------------------------------------------------
-# Refresh callback
-# ---------------------------------------------------------------------------
+def _run_action(action_name: str) -> tuple[str, str, str, str, str, str, str]:
+    global _last_observation, _last_step_result
 
-def _refresh() -> tuple[str, str, str, Any]:
-    """Return updated dashboard data for all auto-refresh components."""
-    health_html = build_health_grid(_env)
-    feed_text = build_action_feed(_action_log)
-    oracle_html = build_oracle_display(_oracle_gap)
-    df = get_training_data(_metrics_log)
-    return health_html, feed_text, oracle_html, df
+    adapter = _ensure_adapter()
+    payload = _PRESET_ACTIONS[action_name]
+    action = SentinelAction(**payload)
+    observation = adapter.step(action)
+    _last_observation = observation.model_dump()
+    _last_step_result = {
+        "action": payload,
+        "reward": observation.reward,
+        "done": observation.done,
+        "info": observation.info,
+    }
+    _append_log(
+        f"{payload['agent']}::{payload['name']} -> reward={observation.reward:.3f}, done={observation.done}"
+    )
+    return _snapshot(
+        f"Action `{payload['name']}` executed. Reward: `{observation.reward:.3f}`. Done: `{observation.done}`."
+    )
 
 
-# ---------------------------------------------------------------------------
-# build_dashboard
-# ---------------------------------------------------------------------------
+def _run_custom_action(action_json: str) -> tuple[str, str, str, str, str, str, str]:
+    global _last_observation, _last_step_result
 
-def build_dashboard(env: Any = None) -> Any:
-    """Build and return the Gradio dashboard.
+    adapter = _ensure_adapter()
+    try:
+        payload = json.loads(action_json)
+        action = SentinelAction(**payload)
+    except Exception as exc:
+        return _snapshot(f"Custom action parse failed: `{exc}`")
 
-    If env is None, creates a pre-seeded Sentinel_Env for demo purposes.
-    Returns None if Gradio is not installed.
-    """
+    observation = adapter.step(action)
+    _last_observation = observation.model_dump()
+    _last_step_result = {
+        "action": payload,
+        "reward": observation.reward,
+        "done": observation.done,
+        "info": observation.info,
+    }
+    _append_log(
+        f"{payload['agent']}::{payload['name']} -> reward={observation.reward:.3f}, done={observation.done}"
+    )
+    return _snapshot(
+        f"Custom action `{payload['name']}` executed. Reward: `{observation.reward:.3f}`. Done: `{observation.done}`."
+    )
+
+
+def _run_smoke_test(seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str]:
+    global _last_observation, _last_step_result
+
+    adapter = SentinelEnvironment()
+    env = adapter._env
+    original_templates = env.incident_generator._templates
+    matching = [tpl for tpl in original_templates if tpl.id == incident_id]
+    if matching:
+        env.incident_generator._templates = matching
+
+    try:
+        observation = adapter.reset(seed=seed)
+    finally:
+        env.incident_generator._templates = original_templates
+
+    query_logs = adapter.step(SentinelAction(**_PRESET_ACTIONS["QueryLogs"]))
+    query_metrics = adapter.step(SentinelAction(**_PRESET_ACTIONS["QueryMetrics"]))
+
+    required_keys = {
+        "metrics_snapshot",
+        "causal_graph_snapshot",
+        "active_alerts",
+        "recent_logs",
+        "active_traces",
+        "incident_context",
+        "sla_state",
+        "reward",
+        "done",
+        "info",
+    }
+    missing = sorted(required_keys.difference(query_metrics.model_dump().keys()))
+
+    ok = not missing and adapter.state.step_count >= 2
+    _adapter_state = adapter.state.model_dump()
+    _last_observation = query_metrics.model_dump()
+    _last_step_result = {
+        "smoke_test": "pass" if ok else "fail",
+        "reset_incident_id": observation.info.get("incident_id"),
+        "query_logs_reward": query_logs.reward,
+        "query_metrics_reward": query_metrics.reward,
+        "state": _adapter_state,
+        "missing_keys": missing,
+    }
+    _append_log(
+        f"smoke_test(seed={seed}, incident={incident_id}) -> {'PASS' if ok else 'FAIL'}"
+    )
+
+    status = (
+        "Smoke test PASSED. Reset, step, state, and observation schema are working."
+        if ok
+        else f"Smoke test FAILED. Missing keys: {missing}"
+    )
+    return _snapshot(status)
+
+
+def build_dashboard() -> Any:
     if not _GRADIO_AVAILABLE:
         return None
 
-    global _env
-    if env is not None:
-        _env = env
-    elif _env is None:
-        _env = _create_demo_env()
+    cfg = load_config()
+    default_action = _json_blob(cfg.training.placeholder_action)
 
-    with gr.Blocks(title="SENTINEL — Multi-Agent Incident Response") as dashboard:
-        gr.Markdown("# SENTINEL — Multi-Agent Incident Response")
+    with gr.Blocks(title="SENTINEL Validation Console", theme=gr.themes.Default()) as dashboard:
+        gr.Markdown(
+            """
+# SENTINEL Validation Console
 
-        # Row 1: Health grid
+This Space is designed to prove the submission requirements directly:
+
+1. the public Space boots correctly,
+2. the OpenEnv adapter can `reset`, `step`, and expose `state`,
+3. the environment returns structured observations,
+4. validators can inspect the live API at `/health` and `/docs`.
+
+Use `Reset Episode`, then a preset action or `Run Validator Smoke Test`.
+"""
+        )
+
         with gr.Row():
-            health_grid = gr.HTML(
-                value=build_health_grid(_env),
-                label="NexaStack Service Health",
-            )
+            with gr.Column(scale=2):
+                status = gr.Markdown("Ready. Initialize the environment with `Reset Episode`.")
+                runtime = gr.Markdown(_health_summary())
+            with gr.Column(scale=1):
+                gr.Markdown(
+                    """
+### Public Endpoints
+- `/health`
+- `/docs`
+- `/dashboard`
 
-        # Row 2: Action feed | ORACLE gap
+### Recommended Check
+Run the smoke test after reset. It validates `reset`, two `step` calls, and observation keys.
+"""
+                )
+
+        with gr.Row():
+            seed = gr.Number(value=cfg.demo.seed, precision=0, label="Seed")
+            incident_id = gr.Dropdown(choices=_INCIDENT_IDS, value=_INCIDENT_IDS[0], label="Incident")
+            reset_btn = gr.Button("Reset Episode", variant="primary")
+            smoke_btn = gr.Button("Run Validator Smoke Test", variant="secondary")
+
+        with gr.Row():
+            query_logs_btn = gr.Button("Query Logs")
+            query_metrics_btn = gr.Button("Query Metrics")
+            restart_btn = gr.Button("Restart Service")
+            escalate_btn = gr.Button("Escalate To Human")
+
+        health_grid = gr.HTML(value=_service_health_html(), label="Service Health")
+
         with gr.Row():
             with gr.Column():
-                action_feed = gr.Textbox(
-                    value=build_action_feed(_action_log),
-                    label="Agent Action Feed (last 20)",
+                custom_action = gr.Code(
+                    value=default_action,
+                    language="json",
+                    label="Custom Action JSON",
+                )
+                custom_btn = gr.Button("Run Custom Action")
+            with gr.Column():
+                action_log = gr.Textbox(
+                    value=_current_log_text(),
+                    label="Action Log",
                     lines=12,
                     interactive=False,
                 )
-            with gr.Column():
-                oracle_display = gr.HTML(
-                    value=build_oracle_display(_oracle_gap),
-                    label="ORACLE Capability Gap",
-                )
 
-        # Row 3: Training progress
         with gr.Row():
-            try:
-                import pandas as pd
-                training_plot = gr.LinePlot(
-                    value=get_training_data(_metrics_log),
-                    x="episode",
-                    y="total_reward",
-                    label="Training Progress (Episode Reward)",
-                )
-            except Exception:
-                training_plot = gr.Dataframe(
-                    value=get_training_data(_metrics_log),
-                    label="Training Metrics",
-                )
+            state_json = gr.Code(value=_current_state_json(), language="json", label="Adapter State")
+            latest_step = gr.Code(value=_json_blob(_last_step_result), language="json", label="Latest Step Result")
 
-        # Row 4: Inject incident
         with gr.Row():
-            incident_dropdown = gr.Dropdown(
-                choices=_INCIDENT_IDS,
-                value=_INCIDENT_IDS[0],
-                label="Incident ID",
-            )
-            inject_btn = gr.Button("Inject Incident")
-            inject_status = gr.Textbox(
-                value="",
-                label="Status",
-                interactive=False,
-            )
+            observation_json = gr.Code(value=_json_blob(_last_observation), language="json", label="Latest Observation")
 
-        inject_btn.click(
-            fn=inject_incident,
-            inputs=[incident_dropdown],
-            outputs=[inject_status],
+        render_output = gr.Textbox(
+            value=_render_snapshot(),
+            label="Environment Render Snapshot",
+            lines=8,
+            interactive=False,
         )
 
-        # Auto-refresh every 2 seconds
-        try:
-            timer = gr.Timer(value=2.0)
-            timer.tick(
-                fn=_refresh,
-                outputs=[health_grid, action_feed, oracle_display, training_plot],
-            )
-        except Exception:
-            # Fallback: use every= parameter if gr.Timer is unavailable
-            health_grid.change(fn=_refresh, outputs=[health_grid, action_feed, oracle_display, training_plot])
+        outputs = [status, runtime, health_grid, state_json, observation_json, latest_step, action_log]
+
+        reset_btn.click(fn=_reset_env, inputs=[seed, incident_id], outputs=outputs)
+        smoke_btn.click(fn=_run_smoke_test, inputs=[seed, incident_id], outputs=outputs)
+        query_logs_btn.click(fn=lambda: _run_action("QueryLogs"), outputs=outputs)
+        query_metrics_btn.click(fn=lambda: _run_action("QueryMetrics"), outputs=outputs)
+        restart_btn.click(fn=lambda: _run_action("RestartService"), outputs=outputs)
+        escalate_btn.click(fn=lambda: _run_action("EscalateToHuman"), outputs=outputs)
+        custom_btn.click(fn=_run_custom_action, inputs=[custom_action], outputs=outputs)
+
+        for trigger in (
+            reset_btn,
+            smoke_btn,
+            query_logs_btn,
+            query_metrics_btn,
+            restart_btn,
+            escalate_btn,
+            custom_btn,
+        ):
+            trigger.click(fn=_render_snapshot, outputs=[render_output])
 
     return dashboard
 
 
-# ---------------------------------------------------------------------------
-# Module-level dashboard object (import-safe)
-# ---------------------------------------------------------------------------
-
-_env = _create_demo_env()
-demo = build_dashboard(_env)
+demo = build_dashboard()
 
 if __name__ == "__main__" and demo is not None:
     demo.launch(share=False)

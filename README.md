@@ -1,69 +1,60 @@
 ---
 title: SENTINEL
-emoji: 🛡️
+emoji: "🛡️"
 colorFrom: indigo
-colorTo: purple
+colorTo: blue
 sdk: docker
 app_port: 7860
 pinned: true
 license: mit
 ---
 
-<p align="center">
-  <h1 align="center">🛡️ SENTINEL</h1>
-  <p align="center">
-    <strong>LLM-First Incident Response Environment for Autonomous Cloud Operations</strong>
-  </p>
-  <p align="center">
-    <em>Training AI agents to diagnose and fix production outages faster than human engineers</em>
-  </p>
-  <p align="center">
-    <img src="https://img.shields.io/badge/OpenEnv-Hackathon_2026-blue" alt="OpenEnv"/>
-    <img src="https://img.shields.io/badge/Python-3.10+-green" alt="Python"/>
-    <img src="https://img.shields.io/badge/Gymnasium-1.3.0-orange" alt="Gymnasium"/>
-    <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"/>
-  </p>
-</p>
+# SENTINEL
 
----
+LLM-first incident response environment for autonomous cloud operations.
 
-## What You Are Building
+SENTINEL is a Gymnasium-compatible environment for training and evaluating agents on realistic production outages across a 30-service microservice platform. It includes cascading failures, partial observability, role-constrained actions, an OpenEnv adapter, a public Hugging Face Space, and committed training artifacts.
 
-SENTINEL is a Gymnasium-compatible environment for training and evaluating LLM agents on realistic cloud incident response.
+## Submission Assets
 
-It simulates:
-- a 30-service microservice platform
-- cascading failures over a dependency graph
-- partial observability with hidden services, missing logs, and red herrings
-- role-constrained actions for investigation, remediation, deployment, and incident closure
+| Deliverable | Link |
+|-------------|------|
+| GitHub Repository | [github.com/sayantikalaskar/sentinel](https://github.com/sayantikalaskar/sentinel) |
+| Hugging Face Space | [huggingface.co/spaces/harry1911/sentinel](https://huggingface.co/spaces/harry1911/sentinel) |
+| Live Runtime | [harry1911-sentinel.hf.space](https://harry1911-sentinel.hf.space/) |
+| Training Notebook | [`sentinel_colab_training.ipynb`](sentinel_colab_training.ipynb) |
+| Training Scripts | [`train.py`](train.py), [`retrain.py`](retrain.py) |
+| OpenEnv Manifest | [`openenv.yaml`](openenv.yaml) |
+| Blog Write-up | [`Blog.MD`](Blog.MD) |
+| Training Curves | [`results/`](results/) |
 
-The active training path is **LLM-only**:
-- observations are converted into structured prompts
-- the model emits one valid JSON action
-- the environment executes that action
-- GRPO optimizes the model against the resulting reward signal
+## Live Validation
 
-There is no active math-policy fallback in the training loop anymore.
+The public Space exposes:
 
----
+- Space page: [huggingface.co/spaces/harry1911/sentinel](https://huggingface.co/spaces/harry1911/sentinel)
+- Runtime root: [harry1911-sentinel.hf.space](https://harry1911-sentinel.hf.space/)
+- Health endpoint: [harry1911-sentinel.hf.space/health](https://harry1911-sentinel.hf.space/health)
+- API docs: [harry1911-sentinel.hf.space/docs](https://harry1911-sentinel.hf.space/docs)
 
-## Why It Matters
+The Space UI is a validation console. It can:
 
-Operational incidents are long-horizon tasks:
-- alerts can be misleading
-- evidence is incomplete
-- wrong actions can expand the blast radius
-- the agent has to diagnose and remediate under time pressure
+- reset a live episode
+- execute valid sample actions
+- run a smoke test across `reset`, `step`, and `state`
+- display live observation and state JSON
 
-SENTINEL turns that into a trainable benchmark instead of a toy Q&A task.
+## What It Simulates
 
----
+Each episode models a cloud incident with:
 
-## Core Environment
+- a 30-service dependency graph
+- cascading failures
+- partial observability with hidden services and noisy evidence
+- agent roles for investigation, remediation, deployment, and incident closure
 
-### Observation
+Each observation contains:
 
-Each step exposes:
 - `metrics_snapshot`
 - `active_alerts`
 - `causal_graph_snapshot`
@@ -72,123 +63,32 @@ Each step exposes:
 - `incident_context`
 - `sla_state`
 
-### Action Roles
+## OpenEnv Structure
 
-| Agent | Purpose | Typical actions |
-|-------|---------|-----------------|
-| `holmes` | Root-cause investigation | `QueryLogs`, `QueryMetrics`, `QueryTrace`, `FormHypothesis` |
-| `forge` | Remediation | `RestartService`, `ScaleService`, `RollbackDeployment`, `DrainTraffic`, `ModifyRateLimit`, `ModifyConfig` |
-| `hermes` | Deployment changes | `CanaryDeploy`, `FullDeploy`, `Rollback` |
-| `oracle` | Closure / escalation / scenario management | `CloseIncident`, `EscalateToHuman`, `GenerateNewScenario` |
-| `argus` | Monitoring support | `QueryLogs`, `QueryMetrics` |
+The OpenEnv-compatible pieces are:
 
-### Reward
+- environment wrapper: [`server/sentinel_environment.py`](server/sentinel_environment.py)
+- manifest: [`openenv.yaml`](openenv.yaml)
+- runtime entrypoint: [`server/app.py`](server/app.py)
+- Gym-style environment: [`sentinel/env.py`](sentinel/env.py)
 
-Episode reward combines:
-- `R1`: diagnosis accuracy
-- `R2`: MTTR efficiency
-- `R3`: recovery quality
-- `R4`: blast-radius minimization
-- penalties for harmful or invalid behavior
+The adapter exposes:
 
-Step rewards also shape:
-- useful investigation
-- correct hypotheses
-- targeted remediation
-- harmful blast-radius expansion
-- restarting healthy services
+- `reset(...)`
+- `step(...)`
+- `state`
 
----
+## Training Evidence
 
-## Which Agents To Train
+Committed plots required for validation are present in [`results/`](results/), including reward and loss curves.
 
-Right now, the highest-value trainable agents are:
-- `holmes`: because diagnosis quality determines whether the rest of the workflow is even correct
-- `forge`: because remediation quality determines MTTR, recovery quality, and blast-radius reduction
-
-Why not train all agents first:
-- `argus` is mostly an observation helper and overlaps heavily with `holmes`
-- `hermes` is narrower and can start as a deterministic deployment-safety policy
-- `oracle` is meta-control and scenario management, which is useful but less critical than diagnosis + remediation for the main benchmark loop
-
-For a hackathon-grade result, training `holmes` and `forge` first is the correct priority.
-
-All five agents have been trained:
-1. `holmes` — 100 episodes
-2. `forge` — 100 episodes
-3. `argus` — 100 episodes
-4. `hermes` — 100 episodes
-5. `oracle` — 100 episodes
-
----
-
-## Training Results
-
-All agents trained on **NVIDIA L40S (48GB)** with `unsloth/Qwen2.5-7B-Instruct-bnb-4bit`, LoRA (r=16, α=32), REINFORCE with EMA baseline.
-
-### Holmes (Root-Cause Analyst)
-| Metric | Last-10 Avg | Best |
-|--------|------------|------|
-| Total Reward | 0.74 | 0.92 |
-| R1 Root Cause | 0.65 | 1.00 |
-| MTTR | 1.0 steps | — |
-
-**Eval** — Easy: R1=0.67, Total=0.74 | Medium: R1=0.50, Total=0.70 | Hard: R1=0.50, Total=0.63
-
-### Forge (Remediation Engineer)
-| Metric | Last-10 Avg | Best |
-|--------|------------|------|
-| Total Reward | 0.60 | 0.85 |
-| R1 Root Cause | 0.15 | 0.50 |
-| MTTR | 5.8 steps | — |
-
-**Eval** — Easy: R1=0.50, Total=0.82 | Medium: R1=0.33, Total=0.72 | Hard: R1=0.17, Total=0.61
-
-### Argus (Monitoring Specialist)
-| Metric | Last-10 Avg | Best |
-|--------|------------|------|
-| Total Reward | 0.77 | 0.90 |
-| R1 Root Cause | 0.75 | 1.00 |
-| MTTR | 4.0 steps | — |
-
-**Eval** — Easy: R1=0.00, Total=0.33 | Medium: R1=0.50, Total=0.68 | Hard: R1=0.50, Total=0.63
-
-### Hermes (Deployment Operator)
-| Metric | Last-10 Avg | Best |
-|--------|------------|------|
-| Total Reward | 0.50 | 0.81 |
-| R1 Root Cause | 0.00 | 0.50 |
-| MTTR | 5.9 steps | — |
-
-**Eval** — Easy: R1=0.00, Total=0.49 | Medium: R1=0.00, Total=0.50 | Hard: R1=0.00, Total=0.51
-
-### Oracle (Incident Commander)
-| Metric | Last-10 Avg | Best |
-|--------|------------|------|
-| Total Reward | 0.37 | 0.40 |
-| R1 Root Cause | 0.00 | 0.00 |
-| MTTR | 1.0 steps | — |
-
-**Eval** — Easy: R1=0.00, Total=0.34 | Medium: R1=0.00, Total=0.36 | Hard: R1=0.00, Total=0.36
-
-### Before vs After Training
-
-| Agent | Random Baseline Total | Trained Total (Easy) | Improvement |
-|-------|----------------------|---------------------|-------------|
-| Holmes | 0.38 | 0.74 | **+95%** |
-| Forge | 0.38 | 0.82 | **+116%** |
-| Argus | 0.38 | 0.33 | Specializes in medium/hard |
-| Hermes | 0.38 | 0.49 | **R3=1.0, R4=1.0** (perfect resolution) |
-| Oracle | 0.38 | 0.34 | **MTTR=1** (instant escalation) |
-
-### Training Curves
+### Comparison Plots
 
 ![All Agents Comparison](results/comparison_all_agents.png)
 
 ![Loss Comparison](results/comparison_loss.png)
 
-<details>
-<summary>Individual Agent Curves</summary>
+### Individual Curves
 
 ![Holmes Training](results/holmes_training_curves.png)
 ![Holmes Loss](results/holmes_loss_curve.png)
@@ -205,11 +105,9 @@ All agents trained on **NVIDIA L40S (48GB)** with `unsloth/Qwen2.5-7B-Instruct-b
 ![Oracle Training](results/oracle_training_curves.png)
 ![Oracle Loss](results/oracle_loss_curve.png)
 
-</details>
+## Training
 
----
-
-## Quick Start
+Quick start:
 
 ```bash
 pip install -r requirements.txt
@@ -217,20 +115,7 @@ python -m pytest -q
 python -c "from sentinel.env import Sentinel_Env; env = Sentinel_Env(); obs, info = env.reset(); print(info)"
 ```
 
----
-
-## Training
-
-Training requires:
-- NVIDIA CUDA GPU
-- `unsloth`
-- `trl`
-- `datasets`
-- latest `openenv-core`
-
-Recommended configuration: `Qwen/Qwen2.5-7B-Instruct` with `--no-4bit` on an `A100-80GB`.
-
-Google Colab or local/rented GPU:
+Training entrypoints:
 
 ```bash
 python train.py --agent holmes --model Qwen/Qwen2.5-7B-Instruct --no-4bit --episodes 500 --batch-size 2
@@ -240,108 +125,56 @@ python train.py --agent oracle --model Qwen/Qwen2.5-7B-Instruct --no-4bit --epis
 python train.py --agent argus --model Qwen/Qwen2.5-7B-Instruct --no-4bit --episodes 300 --batch-size 2
 ```
 
-Detailed hosted-GPU instructions are in `TRAINING.md`.
+Hosted GPU instructions are in [`TRAINING.md`](TRAINING.md).
 
----
+## Validation Checklist
 
-## Submission Assets
-
-| Deliverable | Link |
-|-------------|------|
-| **GitHub Repository** | [github.com/sayantikalaskar/sentinel](https://github.com/sayantikalaskar/sentinel) |
-| **Hugging Face Space** | `HF_SPACE_URL` ← replace with the final public Space URL before submission |
-| **Training Notebook (Colab)** | [`sentinel_colab_training.ipynb`](sentinel_colab_training.ipynb) |
-| **OpenEnv Manifest** | [`openenv.yaml`](openenv.yaml) |
-| **Training Guide** | [`TRAINING.md`](TRAINING.md) |
-| **Blog Write-up** | [`Blog.MD`](Blog.MD) |
-| **Training Results** | [`results/`](results/) |
-
----
-
-## Hackathon Fit
-
-SENTINEL is best positioned as:
-- primary: `World Modeling`
-- secondary: `Long-Horizon Planning`
-
-Why:
-- the agent operates inside a partially observable cloud-operations world
-- incidents require long multi-step diagnosis and remediation
-- actions interact with realistic system state instead of static text tasks
-
----
-
-## Submission Validation
-
-- [x] public repo contains committed `.png` training artifacts for both reward and loss curves
-- [x] runnable training entrypoints exist: [`train.py`](train.py), [`retrain.py`](retrain.py), and [`sentinel_colab_training.ipynb`](sentinel_colab_training.ipynb)
-- [x] root-level `Blog.MD` exists for the Hugging Face Space writeup
-- [x] `openenv.yaml` now uses the current OpenEnv manifest shape and points to `server.app:app`
-- [x] OpenEnv-compatible server wrapper exists under [`server/`](server/)
-- [ ] replace `HF_SPACE_URL` above with the final public, logged-out, cloneable Space URL
-
----
+- [x] public, logged-out, cloneable Hugging Face Space
+- [x] parseable [`openenv.yaml`](openenv.yaml)
+- [x] OpenEnv wrapper with `reset`, `step`, and `state`
+- [x] committed reward and loss plots in the repo
+- [x] runnable training notebook and scripts
+- [x] README links every required deliverable
 
 ## Project Structure
 
 ```text
 sentinel/
-├── sentinel/
-│   ├── env.py
-│   ├── reward.py
-│   ├── models.py
-│   ├── world_state.py
-│   ├── cascade_engine.py
-│   ├── observability.py
-│   ├── incident_generator.py
-│   ├── config.py
-│   ├── math_engine.py
-│   ├── agents/
-│   ├── training/
-│   │   ├── pipeline.py
-│   │   ├── llm_agent.py
-│   │   ├── prompt_builder.py
-│   │   ├── action_parser.py
-│   │   └── evaluate.py
-│   └── api/
-│       └── server.py
-├── demo/app.py
-├── train.py
-├── _train_worker.py
-├── retrain.py
-├── generate_curves.py
+├── demo/
 ├── results/
+├── sentinel/
+├── server/
 ├── tests/
+├── Blog.MD
+├── Dockerfile
+├── README.md
+├── TRAINING.md
+├── client.py
 ├── env_spec.yaml
 ├── incident_library.yaml
+├── models.py
 ├── openenv.yaml
 ├── requirements.txt
-├── TRAINING.md
-└── Dockerfile
+├── retrain.py
+├── sentinel_colab_training.ipynb
+└── train.py
 ```
 
----
+## Hackathon Fit
 
-## Current Workspace Status
+Primary category:
 
-- reward wiring is fixed
-- diagnosis metadata flows correctly into episode reward
-- training and evaluation are LLM-only
-- prompt/action schema matches the actual environment
-- demo import side effects were removed
-- full tests pass
+- `World Modeling`
 
-This workspace is currently CPU-only, so actual GRPO training cannot be run here.
+Secondary category:
 
----
+- `Long-Horizon Planning`
 
 ## Authors
 
-**Harsh Shukla (cyb3r ghoul)** & **Sayantika Laskar**
+Harsh Shukla and Sayantika Laskar
 
-Built for the Meta PyTorch OpenEnv Hackathon 2026
-
----
+Built for the Meta PyTorch OpenEnv Hackathon 2026.
 
 ## License
 
