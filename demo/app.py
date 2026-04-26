@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 
 from models import SentinelAction
 from sentinel.config import load_config
+from sentinel.models import Action
 from server.sentinel_environment import SentinelEnvironment
 
 try:
@@ -228,14 +230,19 @@ def _snapshot(status: str) -> tuple[str, str, str, str, str, str, str]:
     )
 
 
+def _perform_reset(seed: int, incident_id: str) -> tuple[SentinelEnvironment, Any]:
+    adapter = _ensure_adapter()
+    obs, info = adapter._env.reset(seed=seed, options={"incident_id": incident_id})
+    observation = adapter._to_observation(obs=obs, reward=0.0, done=False, info=info)
+    _sync_adapter_state(adapter, observation)
+    return adapter, observation
+
+
 def _reset_env(seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str]:
     global _last_observation, _last_step_result
 
-    adapter = _ensure_adapter()
     try:
-        obs, info = adapter._env.reset(seed=seed, options={"incident_id": incident_id})
-        observation = adapter._to_observation(obs=obs, reward=0.0, done=False, info=info)
-        _sync_adapter_state(adapter, observation)
+        adapter, observation = _perform_reset(seed, incident_id)
     except Exception as exc:
         return _snapshot(f"Reset failed: `{exc}`")
 
@@ -252,11 +259,32 @@ def _reset_env(seed: int, incident_id: str) -> tuple[str, str, str, str, str, st
     )
 
 
-def _run_action(action_name: str) -> tuple[str, str, str, str, str, str, str]:
+def _run_action(action_name: str, seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str]:
     global _last_observation, _last_step_result
 
     adapter = _ensure_adapter()
     payload = _PRESET_ACTIONS[action_name]
+    auto_reset_note = ""
+
+    if adapter._env._needs_reset:
+        try:
+            adapter, observation = _perform_reset(seed, incident_id)
+        except Exception as exc:
+            _append_log(f"auto_reset(seed={seed}, incident_id={incident_id}) -> ERROR: {exc}")
+            return _snapshot(f"Auto-reset failed before `{payload['name']}`: `{exc}`")
+
+        _last_observation = observation.model_dump()
+        _last_step_result = {
+            "event": "auto_reset",
+            "seed": seed,
+            "incident_id": adapter.state.incident_id,
+            "done": observation.done,
+        }
+        _append_log(f"auto_reset(seed={seed}, incident_id={adapter.state.incident_id})")
+        auto_reset_note = (
+            f"Auto-reset episode `{adapter.state.episode_id[:8]}…` with incident **{adapter.state.incident_id}** before action. "
+        )
+
     try:
         action = SentinelAction(**payload)
         observation = adapter.step(action)
@@ -276,19 +304,40 @@ def _run_action(action_name: str) -> tuple[str, str, str, str, str, str, str]:
     )
     reward_icon = "🟢" if observation.reward > 0 else "🔴" if observation.reward < -0.2 else "🟡"
     return _snapshot(
-        f"> {reward_icon} **{payload['agent'].title()}** → `{payload['name']}` — Reward: **{observation.reward:+.3f}** | Done: **{observation.done}**"
+        f"> {reward_icon} **{payload['agent'].title()}** → `{payload['name']}` — "
+        f"{auto_reset_note}Reward: **{observation.reward:+.3f}** | Done: **{observation.done}**"
     )
 
 
-def _run_custom_action(action_json: str) -> tuple[str, str, str, str, str, str, str]:
+def _run_custom_action(action_json: str, seed: int, incident_id: str) -> tuple[str, str, str, str, str, str, str]:
     global _last_observation, _last_step_result
 
     adapter = _ensure_adapter()
+    auto_reset_note = ""
     try:
         payload = json.loads(action_json)
         action = SentinelAction(**payload)
     except Exception as exc:
         return _snapshot(f"Custom action parse failed: `{exc}`")
+
+    if adapter._env._needs_reset:
+        try:
+            adapter, observation = _perform_reset(seed, incident_id)
+        except Exception as exc:
+            _append_log(f"auto_reset(seed={seed}, incident_id={incident_id}) -> ERROR: {exc}")
+            return _snapshot(f"Auto-reset failed before custom action: `{exc}`")
+
+        _last_observation = observation.model_dump()
+        _last_step_result = {
+            "event": "auto_reset",
+            "seed": seed,
+            "incident_id": adapter.state.incident_id,
+            "done": observation.done,
+        }
+        _append_log(f"auto_reset(seed={seed}, incident_id={adapter.state.incident_id})")
+        auto_reset_note = (
+            f"Auto-reset episode `{adapter.state.episode_id[:8]}…` with incident **{adapter.state.incident_id}** before action. "
+        )
 
     try:
         observation = adapter.step(action)
@@ -308,7 +357,8 @@ def _run_custom_action(action_json: str) -> tuple[str, str, str, str, str, str, 
     )
     reward_icon = "🟢" if observation.reward > 0 else "🔴" if observation.reward < -0.2 else "🟡"
     return _snapshot(
-        f"> {reward_icon} **Custom** → `{payload['name']}` — Reward: **{observation.reward:+.3f}** | Done: **{observation.done}**"
+        f"> {reward_icon} **Custom** → `{payload['name']}` — "
+        f"{auto_reset_note}Reward: **{observation.reward:+.3f}** | Done: **{observation.done}**"
     )
 
 
@@ -364,6 +414,103 @@ def _run_smoke_test(seed: int, incident_id: str) -> tuple[str, str, str, str, st
     return _snapshot(status)
 
 
+def _pick_autonomous_target(adapter: SentinelEnvironment) -> str:
+    incident_state = adapter._env.world_state.incident_state
+    if incident_state is not None and incident_state.current_blast_radius:
+        return sorted(incident_state.current_blast_radius)[0]
+
+    for service, metrics in adapter._env.world_state.services.items():
+        if not metrics.availability:
+            return service
+
+    return "cart-service"
+
+
+def _build_autonomous_action(adapter: SentinelEnvironment, iteration: int) -> Action:
+    target_service = _pick_autonomous_target(adapter)
+
+    if iteration == 0:
+        return Action(
+            agent="holmes",
+            category="investigative",
+            name="QueryLogs",
+            params={"service": target_service, "time_range": [0, 300]},
+        )
+
+    return Action(
+        agent="forge",
+        category="remediation",
+        name="RestartService",
+        params={"service": target_service},
+    )
+
+
+def _run_autonomous(seed: int, incident_id: str, delay_seconds: float) -> Any:
+    global _last_observation, _last_step_result
+
+    try:
+        adapter, observation = _perform_reset(seed, incident_id)
+    except Exception as exc:
+        yield _snapshot(f"Autonomous reset failed: `{exc}`")
+        return
+
+    _last_observation = observation.model_dump()
+    _last_step_result = {
+        "event": "auto_reset",
+        "seed": seed,
+        "incident_id": adapter.state.incident_id,
+        "done": observation.done,
+    }
+    _append_log(f"autonomous_start(seed={seed}, incident_id={adapter.state.incident_id})")
+    yield _snapshot(
+        f"> 🤖 **Autonomous mode started** — Episode `{adapter.state.episode_id[:8]}…` loaded with incident **{adapter.state.incident_id}**."
+    )
+
+    sleep_seconds = max(0.0, float(delay_seconds))
+    if sleep_seconds:
+        time.sleep(sleep_seconds)
+
+    for iteration in range(8):
+        action = _build_autonomous_action(adapter, iteration)
+
+        try:
+            observation = adapter.step(SentinelAction(**action.model_dump()))
+        except Exception as exc:
+            _append_log(f"autonomous -> ERROR: {exc}")
+            yield _snapshot(f"Autonomous action failed: `{exc}`")
+            return
+
+        _last_observation = observation.model_dump()
+        _last_step_result = {
+            "mode": "autonomous",
+            "iteration": iteration + 1,
+            "action": action.model_dump(),
+            "reward": observation.reward,
+            "done": observation.done,
+            "info": observation.info,
+        }
+        target_service = action.params.get("service", "—")
+        _append_log(
+            f"autonomous[{iteration + 1}] {action.agent}::{action.name}({target_service}) -> "
+            f"reward={observation.reward:.3f}, done={observation.done}"
+        )
+        yield _snapshot(
+            f"> 🤖 **Autonomous mode** — Step **{iteration + 1}** ran "
+            f"`{action.agent}::{action.name}` on **{target_service}**. "
+            f"Reward: **{observation.reward:+.3f}** | Done: **{observation.done}**"
+        )
+
+        if observation.done:
+            return
+
+        if sleep_seconds:
+            time.sleep(sleep_seconds)
+
+    yield _snapshot(
+        "> ⏸️ **Autonomous mode paused** — Reached the demo step limit. You can inspect the state or continue manually."
+    )
+
+
 def build_dashboard() -> Any:
     if not _GRADIO_AVAILABLE:
         return None
@@ -415,6 +562,18 @@ def build_dashboard() -> Any:
                 reset_btn = gr.Button("▶  Reset Episode", variant="primary", size="lg")
             with gr.Column(scale=1, min_width=160):
                 smoke_btn = gr.Button("🧪  Smoke Test", variant="secondary", size="lg")
+            with gr.Column(scale=1, min_width=140):
+                auto_delay = gr.Slider(
+                    minimum=0.0,
+                    maximum=3.0,
+                    value=1.0,
+                    step=0.25,
+                    label="Auto Delay (s)",
+                )
+
+        with gr.Row():
+            auto_btn = gr.Button("🤖  Autonomous Demo", variant="primary", size="lg")
+            stop_auto_btn = gr.Button("⏹  Stop Auto Run", variant="stop", size="lg")
 
         # ── Service Health Grid ───────────────────────────────
         with gr.Accordion("🏥 Service Health Grid (30 services)", open=True):
@@ -510,11 +669,17 @@ def build_dashboard() -> Any:
 
         reset_btn.click(fn=_reset_env, inputs=[seed, incident_id], outputs=outputs)
         smoke_btn.click(fn=_run_smoke_test, inputs=[seed, incident_id], outputs=outputs)
-        query_logs_btn.click(fn=lambda: _run_action("QueryLogs"), outputs=outputs)
-        query_metrics_btn.click(fn=lambda: _run_action("QueryMetrics"), outputs=outputs)
-        restart_btn.click(fn=lambda: _run_action("RestartService"), outputs=outputs)
-        escalate_btn.click(fn=lambda: _run_action("EscalateToHuman"), outputs=outputs)
-        custom_btn.click(fn=_run_custom_action, inputs=[custom_action], outputs=outputs)
+        query_logs_btn.click(fn=lambda s, i: _run_action("QueryLogs", s, i), inputs=[seed, incident_id], outputs=outputs)
+        query_metrics_btn.click(fn=lambda s, i: _run_action("QueryMetrics", s, i), inputs=[seed, incident_id], outputs=outputs)
+        restart_btn.click(fn=lambda s, i: _run_action("RestartService", s, i), inputs=[seed, incident_id], outputs=outputs)
+        escalate_btn.click(fn=lambda s, i: _run_action("EscalateToHuman", s, i), inputs=[seed, incident_id], outputs=outputs)
+        custom_btn.click(fn=_run_custom_action, inputs=[custom_action, seed, incident_id], outputs=outputs)
+        auto_run_event = auto_btn.click(
+            fn=_run_autonomous,
+            inputs=[seed, incident_id, auto_delay],
+            outputs=outputs,
+        )
+        stop_auto_btn.click(fn=None, cancels=[auto_run_event])
 
         for trigger in (
             reset_btn,
@@ -524,6 +689,8 @@ def build_dashboard() -> Any:
             restart_btn,
             escalate_btn,
             custom_btn,
+            auto_btn,
+            stop_auto_btn,
         ):
             trigger.click(fn=_render_snapshot, outputs=[render_output])
 
