@@ -1,25 +1,35 @@
 """FastAPI entrypoint for the OpenEnv validator and Hugging Face Space runtime."""
 from __future__ import annotations
 
-try:
-    from openenv.core.env_server import create_app
-except ModuleNotFoundError:
-    from fastapi import FastAPI
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 
-from models import SentinelAction, SentinelObservation
-from server.sentinel_environment import SentinelEnvironment
+from demo.app import build_dashboard
+from sentinel.api.server import app as api_app
 
-if "create_app" in globals():
-    app = create_app(
-        SentinelEnvironment,
-        SentinelAction,
-        SentinelObservation,
-        env_name="sentinel",
-        max_concurrent_envs=4,
-    )
-else:
-    app = FastAPI(title="SENTINEL OpenEnv Compatibility Server")
+_HAS_DASHBOARD = False
 
-    @app.get("/health")
-    async def health() -> dict[str, str]:
-        return {"status": "ok", "mode": "compatibility"}
+
+def _mount_dashboard(app: FastAPI) -> FastAPI:
+    """Mount the Gradio dashboard under /dashboard when Gradio is available."""
+    global _HAS_DASHBOARD
+    dashboard = build_dashboard()
+    if dashboard is None:
+        return app
+
+    try:
+        import gradio as gr
+    except ImportError:
+        return app
+
+    _HAS_DASHBOARD = True
+    return gr.mount_gradio_app(app, dashboard, path="/dashboard")
+
+
+app = _mount_dashboard(api_app)
+
+
+@app.get("/", include_in_schema=False)
+async def root() -> RedirectResponse:
+    """Route Space visitors to the public dashboard."""
+    return RedirectResponse(url="/dashboard" if _HAS_DASHBOARD else "/docs")
